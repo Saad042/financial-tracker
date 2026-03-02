@@ -13,6 +13,7 @@ class Account(models.Model):
 
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPE_CHOICES)
+    initial_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -63,5 +64,5 @@ class Account(models.Model):
             or Decimal("0.00")
         )
 
-        self.balance = income - expense - transfers_out + transfers_in - loans_out - investments_out
+        self.balance = self.initial_balance + income - expense - transfers_out + transfers_in - loans_out - investments_out
         self.save(update_fields=["balance", "updated_at"])

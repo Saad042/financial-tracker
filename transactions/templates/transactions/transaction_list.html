@@ -15,7 +15,7 @@
 </div>
 
 <!-- Filters -->
-{% with has_filters=request.GET.search|default:request.GET.type|default:request.GET.category|default:request.GET.account|default:request.GET.date_from|default:request.GET.date_to|default:request.GET.amount_min|default:request.GET.amount_max %}
+{% with has_filters=request.GET.urlencode %}
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
     <button type="button" id="filter-toggle"
             class="w-full flex items-center justify-between px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">

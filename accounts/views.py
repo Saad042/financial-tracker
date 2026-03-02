@@ -21,8 +21,10 @@ class AccountCreateView(CreateView):
     success_url = reverse_lazy("accounts:list")
 
     def form_valid(self, form):
+        response = super().form_valid(form)
+        self.object.recalculate_balance()
         messages.success(self.request, "Account created successfully.")
-        return super().form_valid(form)
+        return response
 
 
 class AccountUpdateView(UpdateView):
@@ -32,8 +34,11 @@ class AccountUpdateView(UpdateView):
     success_url = reverse_lazy("accounts:list")
 
     def form_valid(self, form):
+        response = super().form_valid(form)
+        if "initial_balance" in form.changed_data:
+            self.object.recalculate_balance()
         messages.success(self.request, "Account updated successfully.")
-        return super().form_valid(form)
+        return response
 
 
 class AccountDetailView(DetailView):
