@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Total Balance -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-sm font-medium text-gray-500 mb-1">Total Balance</p>
+        <p class="text-2xl font-bold {% if total_balance >= 0 %}text-gray-900{% else %}text-red-600{% endif %}">{{ total_balance|pkr }}</p>
+    </div>
+
+    <!-- Monthly Income -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-sm font-medium text-gray-500 mb-1">Income (This Month)</p>
+        <p class="text-2xl font-bold text-green-600">{{ month_income|pkr }}</p>
+    </div>
+
+    <!-- Monthly Expenses -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-sm font-medium text-gray-500 mb-1">Expenses (This Month)</p>
+        <p class="text-2xl font-bold text-red-600">{{ month_expenses|pkr }}</p>
+    </div>
+
+    <!-- Net -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-sm font-medium text-gray-500 mb-1">Net (This Month)</p>
+        <p class="text-2xl font-bold {% if month_net >= 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ month_net|pkr }}</p>
+    </div>
+</div>
+
+<!-- Account Breakdown -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Accounts</h2>
+                <a href="{% url 'accounts:create' %}" class="text-sm text-emerald-600 hover:text-emerald-700">+ Add</a>
+            </div>
+            {% if accounts %}
+            <div class="space-y-3">
+                {% for account in accounts %}
+                <a href="{% url 'accounts:detail' account.pk %}" class="flex items-center justify-between hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ account.name }}</p>
+                        <p class="text-xs text-gray-500">{{ account.get_account_type_display }}</p>
+                    </div>
+                    <p class="text-sm font-semibold {% if account.balance >= 0 %}text-gray-900{% else %}text-red-600{% endif %}">{{ account.balance|pkr }}</p>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500">No accounts yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Recent Transactions</h2>
+                <a href="{% url 'transactions:list' %}" class="text-sm text-emerald-600 hover:text-emerald-700">View All</a>
+            </div>
+            {% if recent_transactions %}
+            <div class="divide-y divide-gray-100">
+                {% for txn in recent_transactions %}
+                <div class="flex items-center justify-between px-5 py-3">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-2 h-2 rounded-full {% if txn.type == 'income' %}bg-green-500{% elif txn.type == 'expense' %}bg-red-500{% else %}bg-blue-500{% endif %}"></span>
+                        <div>
+                            <p class="text-sm text-gray-900">
+                                {% if txn.type == "transfer" %}
+                                    Transfer: {{ txn.account.name }} → {{ txn.transfer_to.name }}
+                                {% else %}
+                                    {{ txn.description|default:txn.category|default:txn.get_type_display }}
+                                {% endif %}
+                            </p>
+                            <p class="text-xs text-gray-500">{{ txn.date }} · {{ txn.account.name }}</p>
+                        </div>
+                    </div>
+                    <p class="text-sm font-medium {% if txn.type == 'income' %}text-green-600{% elif txn.type == 'expense' %}text-red-600{% else %}text-blue-600{% endif %}">
+                        {% if txn.type == "income" %}+{% elif txn.type == "expense" %}-{% endif %}{{ txn.amount|pkr }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="px-5 py-8 text-center text-gray-500">No transactions yet. Start by adding your first transaction.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
