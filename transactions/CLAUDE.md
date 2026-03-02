@@ -16,6 +16,7 @@ Handles categories, income/expense transactions, and inter-account transfers.
 - `account` FK — source for expense/transfer, destination for income
 - `transfer_to` FK (nullable) — only set when `type="transfer"`
 - `description` (optional text)
+- `recurring_rule` FK (nullable, `on_delete=SET_NULL`) — links auto-generated transactions back to their `RecurringRule`
 - Ordered by `-date, -created_at`
 
 ## Signals (signals.py)

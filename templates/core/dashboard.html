@@ -33,9 +33,11 @@
     </div>
 </div>
 
-<!-- Account Breakdown -->
+<!-- Main Grid -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-1">
+    <!-- Left Column: Accounts + Loans + Budget Alerts -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Accounts -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-gray-900">Accounts</h2>
@@ -57,6 +59,46 @@
             <p class="text-sm text-gray-500">No accounts yet.</p>
             {% endif %}
         </div>
+
+        <!-- Outstanding Loans -->
+        {% if outstanding_loans_count %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Outstanding Loans</h2>
+                <a href="{% url 'loans:list' %}" class="text-sm text-emerald-600 hover:text-emerald-700">View All</a>
+            </div>
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-gray-500">{{ outstanding_loans_count }} loan{{ outstanding_loans_count|pluralize }}</p>
+                <p class="text-lg font-bold text-amber-600">{{ outstanding_loans_total|pkr }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Budget Alerts -->
+        {% if budget_alerts %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Budget Alerts</h2>
+                <a href="{% url 'budgets:overview' %}" class="text-sm text-emerald-600 hover:text-emerald-700">View All</a>
+            </div>
+            <div class="space-y-3">
+                {% for budget in budget_alerts %}
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-sm font-medium text-gray-900">{{ budget.category.name }}</p>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full {% if budget.status == 'exceeded' %}bg-red-100 text-red-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                            {{ budget.percent_used }}%
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="h-2 rounded-full {% if budget.status == 'exceeded' %}bg-red-500{% else %}bg-amber-500{% endif %}" style="width: {{ budget.percent_used }}%"></div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ budget.spent|pkr }} / {{ budget.amount|pkr }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Recent Transactions -->
@@ -75,12 +117,12 @@
                         <div>
                             <p class="text-sm text-gray-900">
                                 {% if txn.type == "transfer" %}
-                                    Transfer: {{ txn.account.name }} → {{ txn.transfer_to.name }}
+                                    Transfer: {{ txn.account.name }} &rarr; {{ txn.transfer_to.name }}
                                 {% else %}
                                     {{ txn.description|default:txn.category|default:txn.get_type_display }}
                                 {% endif %}
                             </p>
-                            <p class="text-xs text-gray-500">{{ txn.date }} · {{ txn.account.name }}</p>
+                            <p class="text-xs text-gray-500">{{ txn.date }} &middot; {{ txn.account.name }}</p>
                         </div>
                     </div>
                     <p class="text-sm font-medium {% if txn.type == 'income' %}text-green-600{% elif txn.type == 'expense' %}text-red-600{% else %}text-blue-600{% endif %}">

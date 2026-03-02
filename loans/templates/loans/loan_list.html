@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Loans - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Loans</h1>
+    <a href="{% url 'loans:create' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">+ New Loan</a>
+</div>
+
+<!-- Outstanding Summary -->
+{% if outstanding_count %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+    <p class="text-sm text-amber-800">
+        <span class="font-semibold">{{ outstanding_count }} outstanding loan{{ outstanding_count|pluralize }}</span>
+        totalling <span class="font-semibold">{{ outstanding_total|pkr }}</span>
+    </p>
+</div>
+{% endif %}
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    {% if loans %}
+    <table class="w-full">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Borrower</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Lent</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for loan in loans %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-3 text-sm">
+                    <a href="{% url 'loans:detail' loan.pk %}" class="text-emerald-600 hover:text-emerald-700 font-medium">{{ loan.borrower_name }}</a>
+                </td>
+                <td class="px-6 py-3 text-sm text-gray-600">{{ loan.date_lent }}</td>
+                <td class="px-6 py-3 text-sm text-gray-500">{{ loan.account.name }}</td>
+                <td class="px-6 py-3">
+                    <span class="text-xs font-medium px-2 py-1 rounded-full {% if loan.status == 'outstanding' %}bg-amber-100 text-amber-700{% else %}bg-green-100 text-green-700{% endif %}">
+                        {{ loan.get_status_display }}
+                    </span>
+                </td>
+                <td class="px-6 py-3 text-sm text-right font-medium text-gray-900">{{ loan.amount|pkr }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="px-6 py-12 text-center text-gray-500">No loans recorded yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

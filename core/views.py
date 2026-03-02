@@ -5,6 +5,8 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 
 from accounts.models import Account
+from budgets.models import Budget
+from loans.models import Loan
 from transactions.models import Transaction
 
 
@@ -41,5 +43,20 @@ class DashboardView(TemplateView):
         context["recent_transactions"] = (
             Transaction.objects.select_related("category", "account", "transfer_to")[:15]
         )
+
+        # Outstanding loans
+        outstanding_loans = Loan.objects.filter(status=Loan.OUTSTANDING)
+        context["outstanding_loans_total"] = (
+            outstanding_loans.aggregate(total=Sum("amount"))["total"]
+            or Decimal("0.00")
+        )
+        context["outstanding_loans_count"] = outstanding_loans.count()
+
+        # Budget alerts (warning or exceeded for current month)
+        current_month = month_start
+        budgets = Budget.objects.filter(month=current_month).select_related("category")
+        context["budget_alerts"] = [
+            b for b in budgets if b.status in ("warning", "exceeded")
+        ]
 
         return context

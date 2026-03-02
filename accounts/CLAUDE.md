@@ -5,9 +5,9 @@ Manages bank and cash accounts. Each account has a cached balance derived from t
 ## Model: Account
 
 - `name` (CharField), `account_type` (bank/cash), `balance` (DecimalField, cached), timestamps
-- `recalculate_balance()` — aggregates income, expenses, transfers out, and transfers in from the `transactions` app. Called by signals, never manually.
-- Balance formula: `income - expenses - transfers_out + transfers_in`
-- **Do not set `balance` directly.** It is always recomputed from transactions.
+- `recalculate_balance()` — aggregates income, expenses, transfers, and outstanding loans. Called by signals (from both `transactions` and `loans` apps), never manually.
+- Balance formula: `income - expenses - transfers_out + transfers_in - outstanding_loans`
+- **Do not set `balance` directly.** It is always recomputed from transactions and loans.
 
 ## Views
 

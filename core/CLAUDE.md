@@ -9,6 +9,8 @@ Shared utilities and the main dashboard. Has no models of its own.
 - `accounts` — all accounts for breakdown display
 - `month_income`, `month_expenses`, `month_net` — current month aggregates
 - `recent_transactions` — last 15 transactions with related objects
+- `outstanding_loans_total`, `outstanding_loans_count` — outstanding loan summary
+- `budget_alerts` — list of budgets at warning (>=80%) or exceeded (>=100%) status for the current month
 
 Template: `templates/core/dashboard.html`
 

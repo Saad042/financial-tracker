@@ -11,6 +11,9 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("transactions/", include("transactions.urls")),
     path("transfers/add/", TransferCreateView.as_view(), name="transfer_create"),
+    path("loans/", include("loans.urls")),
+    path("recurring/", include("recurring.urls")),
+    path("budgets/", include("budgets.urls")),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Budgets - {{ month|date:"F Y" }} - Expense Tracker{% endblock %}
+
+{% block content %}
+<!-- Month Header with Navigation -->
+<div class="flex items-center justify-between mb-6">
+    <div class="flex items-center space-x-4">
+        <a href="?month={{ prev_month }}" class="text-gray-400 hover:text-gray-600 text-lg">&larr;</a>
+        <h1 class="text-2xl font-bold text-gray-900">Budgets &mdash; {{ month|date:"F Y" }}</h1>
+        <a href="?month={{ next_month }}" class="text-gray-400 hover:text-gray-600 text-lg">&rarr;</a>
+    </div>
+    <div class="flex items-center space-x-3">
+        <form method="post" action="{% url 'budgets:copy' %}?month={{ month|date:'Y-m' }}">
+            {% csrf_token %}
+            <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">Copy from Last Month</button>
+        </form>
+        <a href="{% url 'budgets:set' %}?month={{ month|date:'Y-m' }}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Set Budgets</a>
+    </div>
+</div>
+
+{% if budgets %}
+<!-- Totals -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-sm font-medium text-gray-500 mb-1">Total Budgeted</p>
+        <p class="text-2xl font-bold text-gray-900">{{ total_budgeted|pkr }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-sm font-medium text-gray-500 mb-1">Total Spent</p>
+        <p class="text-2xl font-bold text-red-600">{{ total_spent|pkr }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <p class="text-sm font-medium text-gray-500 mb-1">Remaining</p>
+        <p class="text-2xl font-bold {% if total_remaining >= 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ total_remaining|pkr }}</p>
+    </div>
+</div>
+
+<!-- Budget Progress Bars -->
+<div class="space-y-4">
+    {% for budget in budgets %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-semibold text-gray-900">{{ budget.category.name }}</h3>
+            <div class="text-sm text-gray-500">
+                <span class="font-medium {% if budget.status == 'exceeded' %}text-red-600{% elif budget.status == 'warning' %}text-amber-600{% else %}text-gray-900{% endif %}">{{ budget.spent|pkr }}</span>
+                / {{ budget.amount|pkr }}
+            </div>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="h-3 rounded-full transition-all {% if budget.status == 'exceeded' %}bg-red-500{% elif budget.status == 'warning' %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ budget.percent_used }}%"></div>
+        </div>
+        <div class="flex justify-between mt-1">
+            <span class="text-xs text-gray-400">{{ budget.percent_used }}% used</span>
+            <span class="text-xs {% if budget.remaining >= 0 %}text-gray-400{% else %}text-red-500 font-medium{% endif %}">
+                {% if budget.remaining >= 0 %}{{ budget.remaining|pkr }} left{% else %}{{ budget.remaining|pkr }} over{% endif %}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-12 bg-white rounded-xl border border-gray-200">
+    <p class="text-gray-500 mb-4">No budgets set for {{ month|date:"F Y" }}.</p>
+    <a href="{% url 'budgets:set' %}?month={{ month|date:'Y-m' }}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Set Budgets</a>
+</div>
+{% endif %}
+{% endblock %}

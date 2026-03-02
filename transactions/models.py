@@ -59,6 +59,13 @@ class Transaction(models.Model):
         related_name="incoming_transfers",
     )
     description = models.TextField(blank=True, default="")
+    recurring_rule = models.ForeignKey(
+        "recurring.RecurringRule",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

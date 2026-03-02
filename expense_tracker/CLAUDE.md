@@ -18,5 +18,8 @@ Root URL configuration:
 - `/accounts/` → accounts app URLs
 - `/transactions/` → transactions app URLs
 - `/transfers/add/` → `TransferCreateView` (name: `transfer_create`)
+- `/loans/` → loans app URLs
+- `/recurring/` → recurring app URLs
+- `/budgets/` → budgets app URLs
 - `/admin/` → Django admin
 - `/__reload__/` → browser reload (DEBUG only)
