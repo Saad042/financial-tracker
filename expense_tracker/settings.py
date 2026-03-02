@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'recurring',
     'budgets',
     'reports',
+    'investments',
 ]
 
 MIDDLEWARE = [

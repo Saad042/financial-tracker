@@ -55,5 +55,13 @@ class Account(models.Model):
             or Decimal("0.00")
         )
 
-        self.balance = income - expense - transfers_out + transfers_in - loans_out
+        from investments.models import Investment
+
+        investments_out = (
+            Investment.objects.filter(account=self)
+            .aggregate(total=models.Sum("amount"))["total"]
+            or Decimal("0.00")
+        )
+
+        self.balance = income - expense - transfers_out + transfers_in - loans_out - investments_out
         self.save(update_fields=["balance", "updated_at"])

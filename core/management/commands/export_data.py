@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand
 
 from accounts.models import Account
 from budgets.models import Budget
+from investments.models import Investment
 from loans.models import Loan
 from recurring.models import RecurringRule
 from transactions.models import Category, Transaction
@@ -72,6 +73,12 @@ class Command(BaseCommand):
             "budgets": list(
                 Budget.objects.values(
                     "id", "category_id", "month", "amount",
+                )
+            ),
+            "investments": list(
+                Investment.objects.values(
+                    "id", "name", "amount", "date", "platform",
+                    "account_id", "notes", "created_at",
                 )
             ),
         }

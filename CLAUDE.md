@@ -35,6 +35,7 @@ loans/               # Loan model, signals, create/detail/repay views
 recurring/           # RecurringRule model, CRUD views, generate_recurring command
 budgets/             # Budget model, overview/set/copy views with progress bars
 reports/             # Report hub, monthly breakdown (Chart.js), income/expense trends
+investments/         # Investment model, signals, CRUD views (log only, deducts from account)
 core/                # Dashboard view, shared template tags, export/import commands
 theme/               # Tailwind CSS theme app (auto-generated, don't edit manually)
 templates/           # Project-level templates (base.html, dashboard, partials)
@@ -42,8 +43,8 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 
 ## Architecture Decisions
 
-- **Balance caching:** Account.balance is a cached DecimalField, recalculated via Django signals on every transaction and loan save/delete. Never set balance directly — it's derived from transactions and loans.
-- **Balance formula:** `income - expenses - transfers_out + transfers_in - outstanding_loans`
+- **Balance caching:** Account.balance is a cached DecimalField, recalculated via Django signals on every transaction, loan, and investment save/delete. Never set balance directly — it's derived from transactions, loans, and investments.
+- **Balance formula:** `income - expenses - transfers_out + transfers_in - outstanding_loans - investments_out`
 - **Transfers:** A single Transaction row with `type="transfer"`, `account` = source, `transfer_to` = destination. Not two rows.
 - **Loans:** A single Loan row tracks money lent out. Outstanding loans reduce account balance. Repaying creates an income Transaction with "Loan Repayment Received" category.
 - **Recurring:** RecurringRule defines repeating transactions. The `generate_recurring` management command creates Transaction rows (idempotent per period). Transaction has a nullable `recurring_rule` FK (`on_delete=SET_NULL`).
@@ -53,7 +54,10 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - **HTMX:** Used for dynamic category dropdown filtering by transaction type. Pattern: `hx-get` on the type select triggers a view that returns `<option>` HTML. Reused in recurring rule form. Also used for transaction list filtering — view returns a partial template when `request.htmx` is true.
 - **Transaction filtering:** `_apply_transaction_filters(qs, params)` in `transactions/views.py` is a shared helper reused by the list view and CSV export. Filters: search (description icontains), type, category (parent + children), account, date range, amount range.
 - **Charts:** Chart.js loaded via CDN only on report templates (`{% block extra_js %}`). Not loaded globally.
-- **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Import disconnects transaction/loan signals during bulk create, then recalculates all account balances once at the end.
+- **Investments:** Investment model tracks money invested (log only). Deducts from account balance via signals (same pattern as loans). Excluded from spending reports. Uses purple accent color.
+- **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Import disconnects transaction/loan/investment signals during bulk create, then recalculates all account balances once at the end.
+- **Mobile nav:** Hamburger menu (below `sm` breakpoint) with all nav links + action buttons. Desktop buttons hidden on mobile.
+- **Active nav links:** `request.path` used to highlight current section with `text-emerald-600 font-semibold` in both desktop and mobile menus.
 
 ## Conventions
 
@@ -62,13 +66,13 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - Use `{% load currency %}` and the `|pkr` filter to format amounts
 - Forms use Tailwind classes applied via widget attrs in the form class
 - Views use Django's class-based generic views (ListView, CreateView, etc.)
-- URL namespaces: `accounts:list`, `transactions:create`, `loans:list`, `recurring:list`, `budgets:overview`, `reports:hub`, etc. Transfer create is a root-level name: `transfer_create`
+- URL namespaces: `accounts:list`, `transactions:create`, `loans:list`, `recurring:list`, `budgets:overview`, `reports:hub`, `investments:list`, etc. Transfer create is a root-level name: `transfer_create`
 
 ## Build Phases
 
 - **Phase 1 (Foundation):** DONE — accounts, transactions, transfers, dashboard
 - **Phase 2 (Extended):** DONE — loans, recurring transactions, budgets
 - **Phase 3 (Reporting):** DONE — reports app (Chart.js), transaction search/filter, CSV export, JSON export/import
-- **Phase 4 (Polish):** budget alerts, responsive tweaks, investments
+- **Phase 4 (Polish):** DONE — investments app, mobile hamburger menu, active nav links, responsive grid tweaks
 
 See `requirements.md` for full spec.

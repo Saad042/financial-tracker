@@ -8,6 +8,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 
 from accounts.models import Account
 from budgets.models import Budget
+from investments.models import Investment
 from loans.models import Loan
 from recurring.models import RecurringRule
 from transactions.models import Category, Transaction
@@ -62,7 +63,7 @@ class Command(BaseCommand):
         # Show summary
         self.stdout.write(f"Import file: {file_path}")
         self.stdout.write(f"Exported at: {data['meta'].get('exported_at', 'unknown')}")
-        for key in ("accounts", "categories", "transactions", "loans", "recurring_rules", "budgets"):
+        for key in ("accounts", "categories", "transactions", "loans", "recurring_rules", "budgets", "investments"):
             count = len(data.get(key, []))
             self.stdout.write(f"  {key}: {count} records")
 
@@ -85,10 +86,17 @@ class Command(BaseCommand):
         post_save.disconnect(loan_signals.update_balances_on_loan_save, sender=Loan)
         post_delete.disconnect(loan_signals.update_balances_on_loan_delete, sender=Loan)
 
+        # Disconnect investment signals
+        from investments import signals as investment_signals
+        pre_save.disconnect(investment_signals.capture_old_investment, sender=Investment)
+        post_save.disconnect(investment_signals.update_balances_on_investment_save, sender=Investment)
+        post_delete.disconnect(investment_signals.update_balances_on_investment_delete, sender=Investment)
+
         try:
             with db_transaction.atomic():
                 # Delete in reverse dependency order
                 Budget.objects.all().delete()
+                Investment.objects.all().delete()
                 Transaction.objects.all().delete()
                 RecurringRule.objects.all().delete()
                 Loan.objects.all().delete()
@@ -102,6 +110,7 @@ class Command(BaseCommand):
                 self._bulk_create(Transaction, data.get("transactions", []))
                 self._bulk_create(Loan, data.get("loans", []))
                 self._bulk_create(Budget, data.get("budgets", []))
+                self._bulk_create(Investment, data.get("investments", []))
 
                 # Recalculate all account balances once
                 for account in Account.objects.all():
@@ -116,6 +125,10 @@ class Command(BaseCommand):
             pre_save.connect(loan_signals.capture_old_loan, sender=Loan)
             post_save.connect(loan_signals.update_balances_on_loan_save, sender=Loan)
             post_delete.connect(loan_signals.update_balances_on_loan_delete, sender=Loan)
+
+            pre_save.connect(investment_signals.capture_old_investment, sender=Investment)
+            post_save.connect(investment_signals.update_balances_on_investment_save, sender=Investment)
+            post_delete.connect(investment_signals.update_balances_on_investment_delete, sender=Investment)
 
         self.stdout.write(self.style.SUCCESS("Import completed successfully."))
 

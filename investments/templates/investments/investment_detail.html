@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}{{ investment.name }} - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">{{ investment.name }}</h1>
+        <a href="{% url 'investments:list' %}" class="text-gray-600 hover:text-gray-900 text-sm">Back to Investments</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-500">Amount</p>
+                <p class="text-lg font-semibold text-purple-700">{{ investment.amount|pkr }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">From Account</p>
+                <p class="text-lg font-semibold text-gray-900">{{ investment.account.name }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Date</p>
+                <p class="text-sm text-gray-900">{{ investment.date }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Platform</p>
+                <p class="text-sm text-gray-900">{{ investment.platform|default:"Not specified" }}</p>
+            </div>
+        </div>
+        {% if investment.notes %}
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <p class="text-sm text-gray-500">Notes</p>
+            <p class="text-sm text-gray-900">{{ investment.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

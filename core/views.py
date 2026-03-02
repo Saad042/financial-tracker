@@ -6,6 +6,7 @@ from django.views.generic import TemplateView
 
 from accounts.models import Account
 from budgets.models import Budget
+from investments.models import Investment
 from loans.models import Loan
 from transactions.models import Transaction
 
@@ -51,6 +52,13 @@ class DashboardView(TemplateView):
             or Decimal("0.00")
         )
         context["outstanding_loans_count"] = outstanding_loans.count()
+
+        # Total invested
+        context["total_invested"] = (
+            Investment.objects.aggregate(total=Sum("amount"))["total"]
+            or Decimal("0.00")
+        )
+        context["investments_count"] = Investment.objects.count()
 
         # Budget alerts (warning or exceeded for current month)
         current_month = month_start

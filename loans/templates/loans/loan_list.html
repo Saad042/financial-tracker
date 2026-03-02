@@ -21,7 +21,8 @@
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     {% if loans %}
-    <table class="w-full">
+    <div class="overflow-x-auto">
+    <table class="w-full min-w-[500px]">
         <thead class="bg-gray-50">
             <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Borrower</th>
@@ -49,6 +50,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p class="px-6 py-12 text-center text-gray-500">No loans recorded yet.</p>
     {% endif %}
