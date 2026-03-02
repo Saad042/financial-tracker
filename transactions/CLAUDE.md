@@ -32,14 +32,17 @@ Signals are imported in `apps.py` → `ready()`.
 
 - `TransactionForm` — for income/expense. Validates category type matches transaction type. Type select has `hx-get` to dynamically filter the category dropdown.
 - `TransferForm` — for transfers. Has `from_account`/`to_account` fields. Prevents same-account transfer. Sets `type=TRANSFER` and maps accounts in `save()`.
+- `TransactionFilterForm` — plain Form (not ModelForm) for search/filtering on the transaction list. Fields: search, type, category, account, date_from/date_to, amount_min/amount_max.
 
 ## Views
 
-- `TransactionListView` — paginated (25), shows all transactions
+- `TransactionListView` — paginated (25) with combinable filters. Returns `_transaction_table.html` partial when `request.htmx` is true (HTMX partial swap). Passes `TransactionFilterForm` in context.
 - `TransactionCreateView` / `TransactionUpdateView` — uses `TransactionForm` or `TransferForm` depending on type
 - `TransactionDeleteView` — confirmation page
 - `TransferCreateView` — separate view for creating transfers
+- `TransactionCSVExportView` — exports filtered transactions as CSV. Reuses `_apply_transaction_filters()`.
 - `category_options` — HTMX endpoint returning `<option>` tags filtered by type
+- `_apply_transaction_filters(qs, params)` — shared helper that applies GET params to a Transaction queryset. Used by list view and CSV export.
 
 ## URLs (namespace: `transactions`)
 
@@ -48,9 +51,15 @@ Signals are imported in `apps.py` → `ready()`.
 - `transactions:edit` → `/transactions/<pk>/edit/`
 - `transactions:delete` → `/transactions/<pk>/delete/`
 - `transactions:category_options` → `/transactions/category-options/`
+- `transactions:export_csv` → `/transactions/export/csv/`
 - Transfer create is at root level: `transfer_create` → `/transfers/add/`
 
 ## Templates
 
 - `transactions/templates/transactions/` — list, form, delete confirmation, transfer form
 - `transactions/templates/transactions/partials/_category_options.html` — HTMX partial for category dropdown
+- `transactions/templates/transactions/partials/_transaction_table.html` — HTMX partial for transaction table + pagination. Pagination links use `{% querystring %}` to preserve filter params, with `hx-get` + `hx-target="#transaction-results"` + `hx-push-url="true"`.
+
+## HTMX Filtering Pattern
+
+The transaction list filter form uses `hx-get` targeting `#transaction-results`. The view detects `request.htmx` and returns only the `_transaction_table.html` partial (no full page layout). Pagination links inside the partial also use HTMX with `hx-push-url="true"` to update the browser URL.

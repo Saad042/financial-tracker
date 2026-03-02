@@ -59,6 +59,51 @@ class TransactionForm(forms.ModelForm):
         return cleaned_data
 
 
+class TransactionFilterForm(forms.Form):
+    """Filter form for the transaction list — plain Form, not ModelForm."""
+
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": INPUT_CLASS,
+            "placeholder": "Search description…",
+        }),
+    )
+    type = forms.ChoiceField(
+        required=False,
+        choices=[("", "All types"), ("income", "Income"), ("expense", "Expense"), ("transfer", "Transfer")],
+        widget=forms.Select(attrs={"class": INPUT_CLASS}),
+    )
+    category = forms.ModelChoiceField(
+        required=False,
+        queryset=Category.objects.filter(parent__isnull=True),
+        empty_label="All categories",
+        widget=forms.Select(attrs={"class": INPUT_CLASS}),
+    )
+    account = forms.ModelChoiceField(
+        required=False,
+        queryset=Account.objects.all(),
+        empty_label="All accounts",
+        widget=forms.Select(attrs={"class": INPUT_CLASS}),
+    )
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT_CLASS}),
+    )
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT_CLASS}),
+    )
+    amount_min = forms.DecimalField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": INPUT_CLASS, "placeholder": "Min", "step": "0.01", "min": "0"}),
+    )
+    amount_max = forms.DecimalField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": INPUT_CLASS, "placeholder": "Max", "step": "0.01", "min": "0"}),
+    )
+
+
 class TransferForm(forms.ModelForm):
     from_account = forms.ModelChoiceField(
         queryset=Account.objects.all(),

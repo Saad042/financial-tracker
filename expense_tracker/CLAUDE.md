@@ -21,5 +21,6 @@ Root URL configuration:
 - `/loans/` → loans app URLs
 - `/recurring/` → recurring app URLs
 - `/budgets/` → budgets app URLs
+- `/reports/` → reports app URLs
 - `/admin/` → Django admin
 - `/__reload__/` → browser reload (DEBUG only)

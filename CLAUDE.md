@@ -19,6 +19,8 @@ uv run python manage.py makemigrations     # Generate migrations
 uv run python manage.py migrate            # Apply migrations
 uv run python manage.py createsuperuser    # Create admin user
 uv run python manage.py generate_recurring # Create transactions from active recurring rules
+uv run python manage.py export_data        # Export all data to JSON (default: expense_tracker_export.json)
+uv run python manage.py import_data <file> # Import data from JSON (full replace, use --yes to skip prompt)
 ```
 
 Always run commands through `uv run` — the virtualenv is managed by uv.
@@ -32,7 +34,8 @@ transactions/        # Category + Transaction models, balance signals, CRUD view
 loans/               # Loan model, signals, create/detail/repay views
 recurring/           # RecurringRule model, CRUD views, generate_recurring command
 budgets/             # Budget model, overview/set/copy views with progress bars
-core/                # Dashboard view, shared template tags
+reports/             # Report hub, monthly breakdown (Chart.js), income/expense trends
+core/                # Dashboard view, shared template tags, export/import commands
 theme/               # Tailwind CSS theme app (auto-generated, don't edit manually)
 templates/           # Project-level templates (base.html, dashboard, partials)
 ```
@@ -47,7 +50,10 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - **Budgets:** Budget = (category, month) pair with an amount. Properties compute `spent`, `remaining`, `percent_used`, `status` (safe/warning/exceeded). Budget alerts surface on the dashboard.
 - **Categories:** Pre-seeded via data migration (`0002_seed_categories.py`). System categories have `is_system=True`. Categories belong to the `transactions` app.
 - **FK safety:** All foreign keys use `on_delete=PROTECT`, except `Transaction.recurring_rule` which uses `SET_NULL` so deleting a rule orphans its transactions.
-- **HTMX:** Used for dynamic category dropdown filtering by transaction type. Pattern: `hx-get` on the type select triggers a view that returns `<option>` HTML. Reused in recurring rule form.
+- **HTMX:** Used for dynamic category dropdown filtering by transaction type. Pattern: `hx-get` on the type select triggers a view that returns `<option>` HTML. Reused in recurring rule form. Also used for transaction list filtering — view returns a partial template when `request.htmx` is true.
+- **Transaction filtering:** `_apply_transaction_filters(qs, params)` in `transactions/views.py` is a shared helper reused by the list view and CSV export. Filters: search (description icontains), type, category (parent + children), account, date range, amount range.
+- **Charts:** Chart.js loaded via CDN only on report templates (`{% block extra_js %}`). Not loaded globally.
+- **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Import disconnects transaction/loan signals during bulk create, then recalculates all account balances once at the end.
 
 ## Conventions
 
@@ -56,13 +62,13 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - Use `{% load currency %}` and the `|pkr` filter to format amounts
 - Forms use Tailwind classes applied via widget attrs in the form class
 - Views use Django's class-based generic views (ListView, CreateView, etc.)
-- URL namespaces: `accounts:list`, `transactions:create`, `loans:list`, `recurring:list`, `budgets:overview`, etc. Transfer create is a root-level name: `transfer_create`
+- URL namespaces: `accounts:list`, `transactions:create`, `loans:list`, `recurring:list`, `budgets:overview`, `reports:hub`, etc. Transfer create is a root-level name: `transfer_create`
 
 ## Build Phases
 
 - **Phase 1 (Foundation):** DONE — accounts, transactions, transfers, dashboard
 - **Phase 2 (Extended):** DONE — loans, recurring transactions, budgets
-- **Phase 3 (Reporting):** charts, search/filter, JSON/CSV export-import
+- **Phase 3 (Reporting):** DONE — reports app (Chart.js), transaction search/filter, CSV export, JSON export/import
 - **Phase 4 (Polish):** budget alerts, responsive tweaks, investments
 
 See `requirements.md` for full spec.
