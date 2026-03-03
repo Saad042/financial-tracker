@@ -29,6 +29,12 @@ class Instrument(models.Model):
     ticker = models.CharField(max_length=20, unique=True)
     instrument_type = models.CharField(max_length=20, choices=INSTRUMENT_TYPE_CHOICES)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES)
+    api_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="CoinGecko coin ID (e.g., bitcoin, ethereum, solana)",
+    )
     platform = models.CharField(max_length=200, blank=True, default="")
     notes = models.TextField(blank=True, default="")
     is_active = models.BooleanField(default=True)

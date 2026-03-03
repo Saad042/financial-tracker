@@ -90,7 +90,7 @@ class Command(BaseCommand):
             "instruments": list(
                 Instrument.objects.values(
                     "id", "name", "ticker", "instrument_type", "currency",
-                    "platform", "notes", "is_active", "created_at",
+                    "api_id", "platform", "notes", "is_active", "created_at",
                 )
             ),
             "instrument_prices": list(

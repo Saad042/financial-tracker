@@ -10,6 +10,7 @@ Django project configuration module.
 - HTMX: `HtmxMiddleware` in middleware stack
 - Browser reload: enabled in DEBUG via middleware + URL include
 - Project-level templates dir: `BASE_DIR / "templates"`
+- Logging: `investments.crypto_prices` logger at INFO level to console
 
 ## urls.py
 

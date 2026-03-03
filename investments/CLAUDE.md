@@ -5,7 +5,7 @@ Full investment portfolio tracking with support for Pakistani stocks (PSX), inte
 ## Models
 
 ### Instrument
-- `name`, `ticker` (unique), `instrument_type` (psx_stock/pk_mutual_fund/us_stock/crypto/international_fund), `currency` (PKR/USD), `platform`, `notes`, `is_active`, `created_at`
+- `name`, `ticker` (unique), `instrument_type` (psx_stock/pk_mutual_fund/us_stock/crypto/international_fund), `currency` (PKR/USD), `api_id` (CoinGecko coin ID, e.g. "bitcoin"), `platform`, `notes`, `is_active`, `created_at`
 - Properties: `latest_price`, `current_holdings`, `average_cost`, `current_value`, `unrealized_gain_loss`, `realized_gain_loss`
 
 ### InstrumentPrice
@@ -43,13 +43,23 @@ Helpers:
 - `get_inception_date()` — earliest investment transaction date
 - `_get_last_known(sorted_pairs, target_date)` — bisect-based last-known lookup
 
+## Crypto Price Fetching (crypto_prices.py)
+
+Auto-fetch historical + current crypto prices from CoinGecko's free API for instruments with `api_id` set. Uses `httpx` for HTTP requests. Logs to `investments.crypto_prices` logger (INFO level configured in settings).
+
+- `fetch_crypto_prices(fetch_exchange_rate, stdout, ticker, start_date, end_date)` — main entry point. Iterates crypto instruments with api_id (optionally filtered by ticker), fetches `/coins/{api_id}/market_chart/range` using the instrument's currency as `vs_currency` (PKR or USD). Saves via `update_or_create`. 6-second delay between instruments (free tier rate limit). Auto-caps range to 365 days unless explicit start date given. Also fetches historical USD/PKR rates via tether/PKR for the same date range.
+- `start_background_fetch(ticker, start_date, end_date)` / `get_fetch_status()` — daemon thread wrapper with Lock-based status dict for UI polling.
+- Management command: `fetch_crypto_prices` with `--ticker`, `--start-date`, `--end-date`, `--no-exchange-rate` flags.
+- Free tier limitations: 401 errors on ranges >365 days, 429 on rate limiting. Errors handled per-instrument so one failure doesn't stop others.
+
 ## Views
 
 - `PortfolioDashboardView` — summary cards, allocation donut chart, 30-day performance line chart, holdings table
 - `PortfolioPerformanceView` — dedicated performance page with date range presets (1M/3M/6M/YTD/All/Custom), dual-line chart (portfolio value vs net invested), summary cards
 - `InstrumentListView/CreateView/UpdateView/DetailView` — instrument CRUD
 - `InvestmentTransactionListView/CreateView` — filterable transaction list and add form
-- `BulkPriceEntryView` — update prices for all active instruments at once
+- `BulkPriceEntryView` — update prices for all active instruments at once. Shows "Fetch Crypto Prices" card with instrument picker and date range fields if crypto instruments with api_id exist. JS polls `fetch_crypto_prices` GET endpoint for status updates.
+- `FetchCryptoPricesView` — POST starts background fetch (accepts ticker, start_date, end_date from form), GET returns JSON status for polling
 - `PriceImportView` — upload xlsx → preview → confirm import flow. Auto-detects Meezan/MUFAP (13-col, repurchase from col 4) and MCB (4-col, redemption from col 3) formats. Uses `openpyxl` (read_only). Parsing helpers: `parse_price_file`, `_detect_format`, `_parse_meezan`, `_parse_mcb`, `_parse_date`, `_pick_price`. Stores preview as JSON in hidden field between steps. Uses `InstrumentPrice.update_or_create` for idempotent import.
 - `PriceHistoryView` — filterable price history
 - `ExchangeRateListView` — list + inline add form
@@ -63,6 +73,7 @@ Helpers:
 - `investments:bulk_prices` → `/investments/prices/`
 - `investments:price_history` → `/investments/prices/history/`
 - `investments:price_import` → `/investments/prices/import/`
+- `investments:fetch_crypto_prices` → `/investments/fetch-crypto-prices/`
 - `investments:exchange_rates` → `/investments/exchange-rates/`
 
 ## Notes

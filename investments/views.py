@@ -5,9 +5,11 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.db.models import F, Sum
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.views import View
 from django.views.generic import (
     CreateView,
     DetailView,
@@ -28,6 +30,7 @@ from .models import (
     InstrumentPrice,
     InvestmentTransaction,
 )
+from .crypto_prices import get_fetch_status, start_background_fetch
 from .performance import compute_portfolio_series, get_inception_date
 
 
@@ -314,6 +317,13 @@ class BulkPriceEntryView(TemplateView):
                 }
             )
         context["instrument_data"] = instrument_data
+        crypto_instruments = list(
+            Instrument.objects.filter(
+                instrument_type=Instrument.CRYPTO, is_active=True
+            ).exclude(api_id="")
+        )
+        context["crypto_instruments"] = crypto_instruments
+        context["has_crypto_api"] = len(crypto_instruments) > 0
         return context
 
     def post(self, request, *args, **kwargs):
@@ -331,6 +341,34 @@ class BulkPriceEntryView(TemplateView):
                 count += 1
         messages.success(request, f"Updated prices for {count} instrument(s).")
         return redirect(f"{reverse_lazy('investments:bulk_prices')}?date={date}")
+
+
+# ---------------------------------------------------------------------------
+# Fetch Crypto Prices
+# ---------------------------------------------------------------------------
+
+
+class FetchCryptoPricesView(View):
+    def post(self, request, *args, **kwargs):
+        ticker = request.POST.get("ticker", "").strip() or None
+        start_date = None
+        end_date = None
+        if request.POST.get("start_date"):
+            start_date = date.fromisoformat(request.POST["start_date"])
+        if request.POST.get("end_date"):
+            end_date = date.fromisoformat(request.POST["end_date"])
+
+        started = start_background_fetch(
+            ticker=ticker, start_date=start_date, end_date=end_date
+        )
+        if started:
+            messages.info(request, "Fetching crypto prices in the background...")
+        else:
+            messages.warning(request, "A fetch is already in progress.")
+        return redirect("investments:bulk_prices")
+
+    def get(self, request, *args, **kwargs):
+        return JsonResponse(get_fetch_status())
 
 
 # ---------------------------------------------------------------------------

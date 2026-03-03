@@ -18,6 +18,7 @@ urlpatterns = [
     path("transactions/", views.InvestmentTransactionListView.as_view(), name="transaction_list"),
     path("transactions/add/", views.InvestmentTransactionCreateView.as_view(), name="transaction_create"),
     # Prices
+    path("fetch-crypto-prices/", views.FetchCryptoPricesView.as_view(), name="fetch_crypto_prices"),
     path("prices/", views.BulkPriceEntryView.as_view(), name="bulk_prices"),
     path("prices/history/", views.PriceHistoryView.as_view(), name="price_history"),
     path("prices/import/", views.PriceImportView.as_view(), name="price_import"),

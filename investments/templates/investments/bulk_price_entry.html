@@ -12,6 +12,58 @@
         </div>
     </div>
 
+    {% if has_crypto_api %}
+    <!-- Fetch Crypto Prices -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="mb-4">
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Auto-Fetch Crypto Prices</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Fetch historical prices from CoinGecko + USD/PKR rate</p>
+        </div>
+        <form method="post" action="{% url 'investments:fetch_crypto_prices' %}">
+            {% csrf_token %}
+            <div class="grid grid-cols-3 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Instrument</label>
+                    <select name="ticker"
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm">
+                        <option value="">All</option>
+                        {% for inst in crypto_instruments %}
+                        <option value="{{ inst.ticker }}">{{ inst.ticker }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Start Date</label>
+                    <input type="date" name="start_date"
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
+                           placeholder="Auto-detect">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">End Date</label>
+                    <input type="date" name="end_date"
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
+                           placeholder="Today">
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Leave dates blank to auto-detect range (from latest price to today).</p>
+            <button type="submit" id="fetchBtn"
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                Fetch Prices
+            </button>
+        </form>
+        <div id="fetchStatus" class="mt-3 hidden">
+            <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <svg class="animate-spin h-4 w-4 text-purple-600 dark:text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span id="fetchProgress">Starting...</span>
+            </div>
+            <div id="fetchResults" class="mt-2 space-y-1 text-xs"></div>
+        </div>
+    </div>
+    {% endif %}
+
     <form method="post" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         {% csrf_token %}
 
@@ -70,5 +122,51 @@ function updateDateFilter() {
     var date = document.getElementById('price_date').value;
     window.location.href = '{% url "investments:bulk_prices" %}?date=' + date;
 }
+
+{% if has_crypto_api %}
+(function() {
+    var statusDiv = document.getElementById('fetchStatus');
+    var progressEl = document.getElementById('fetchProgress');
+    var resultsEl = document.getElementById('fetchResults');
+    var fetchBtn = document.getElementById('fetchBtn');
+    var pollInterval = null;
+
+    function pollStatus() {
+        fetch('{% url "investments:fetch_crypto_prices" %}')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.running) {
+                    statusDiv.classList.remove('hidden');
+                    fetchBtn.disabled = true;
+                    fetchBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    progressEl.textContent = data.progress || 'Working...';
+                } else {
+                    // Done
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                    fetchBtn.disabled = false;
+                    fetchBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    if (data.results && data.results.length > 0) {
+                        statusDiv.classList.remove('hidden');
+                        progressEl.textContent = 'Completed';
+                        // Hide spinner
+                        progressEl.previousElementSibling.classList.add('hidden');
+                        resultsEl.innerHTML = data.results.map(function(r) {
+                            var color = r.includes('error') || r.includes('HTTP') ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
+                            return '<p class="' + color + '">' + r + '</p>';
+                        }).join('');
+                    }
+                }
+            })
+            .catch(function() {});
+    }
+
+    // Start polling on page load (catches in-progress fetches)
+    pollStatus();
+    pollInterval = setInterval(pollStatus, 3000);
+})();
+{% endif %}
 </script>
 {% endblock %}

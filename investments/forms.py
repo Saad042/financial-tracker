@@ -15,6 +15,7 @@ class InstrumentForm(forms.ModelForm):
             "ticker",
             "instrument_type",
             "currency",
+            "api_id",
             "platform",
             "notes",
             "is_active",
@@ -28,6 +29,12 @@ class InstrumentForm(forms.ModelForm):
             ),
             "instrument_type": forms.Select(attrs={"class": INPUT_CLASS}),
             "currency": forms.Select(attrs={"class": INPUT_CLASS}),
+            "api_id": forms.TextInput(
+                attrs={
+                    "class": INPUT_CLASS,
+                    "placeholder": "e.g., bitcoin, ethereum, solana",
+                }
+            ),
             "platform": forms.TextInput(
                 attrs={
                     "class": INPUT_CLASS,
