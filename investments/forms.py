@@ -2,6 +2,8 @@ from django import forms
 
 from .models import ExchangeRate, Instrument, InvestmentTransaction
 
+ACCEPT_XLSX = ".xlsx"
+
 INPUT_CLASS = "w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
 
 
@@ -125,6 +127,16 @@ class InvestmentTransactionForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class PriceImportForm(forms.Form):
+    instrument = forms.ModelChoiceField(
+        queryset=Instrument.objects.filter(is_active=True),
+        widget=forms.Select(attrs={"class": INPUT_CLASS}),
+    )
+    file = forms.FileField(
+        widget=forms.FileInput(attrs={"class": INPUT_CLASS, "accept": ACCEPT_XLSX}),
+    )
 
 
 class ExchangeRateForm(forms.ModelForm):

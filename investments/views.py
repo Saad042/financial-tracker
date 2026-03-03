@@ -16,7 +16,12 @@ from django.views.generic import (
     UpdateView,
 )
 
-from .forms import ExchangeRateForm, InstrumentForm, InvestmentTransactionForm
+from .forms import (
+    ExchangeRateForm,
+    InstrumentForm,
+    InvestmentTransactionForm,
+    PriceImportForm,
+)
 from .models import (
     ExchangeRate,
     Instrument,
@@ -395,6 +400,187 @@ class _DecimalEncoder(json.JSONEncoder):
 
 def _json(data):
     return json.dumps(data, cls=_DecimalEncoder)
+
+
+# ---------------------------------------------------------------------------
+# Price Import from Excel
+# ---------------------------------------------------------------------------
+
+
+def _parse_date(value):
+    """Parse a date from string or datetime object."""
+    if isinstance(value, date):
+        return value
+    from datetime import datetime as dt
+
+    text = str(value).strip()
+    for fmt in ("%d-%b-%Y", "%d %b %Y", "%d-%B-%Y", "%d %B %Y", "%Y-%m-%d"):
+        try:
+            return dt.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _pick_price(repurchase_val, nav_val):
+    """Prefer repurchase/redemption price; fall back to NAV."""
+    try:
+        rp = Decimal(str(repurchase_val))
+        if rp > 0:
+            return rp
+    except (TypeError, ValueError, ArithmeticError):
+        pass
+    try:
+        nv = Decimal(str(nav_val))
+        if nv > 0:
+            return nv
+    except (TypeError, ValueError, ArithmeticError):
+        pass
+    return None
+
+
+def _detect_format(all_rows):
+    """Return 'meezan' or 'mcb' based on header rows, or None."""
+    if not all_rows:
+        return None
+    row0 = all_rows[0]
+    if row0 and any(str(c).strip() == "Validity Date" for c in row0 if c):
+        return "meezan"
+    if len(all_rows) > 1:
+        row1 = all_rows[1]
+        if row1 and any(str(c).strip() == "Date" for c in row1 if c):
+            return "mcb"
+    return None
+
+
+def _parse_meezan(all_rows):
+    """Parse Meezan/MUFAP format: header row 0, blank row 1, data from row 2+."""
+    rows, errors = [], []
+    for i, row in enumerate(all_rows[2:], start=2):
+        if not row or not row[3]:
+            continue
+        d = _parse_date(row[3])
+        if d is None:
+            errors.append(f"Row {i + 1}: could not parse date '{row[3]}'")
+            continue
+        price = _pick_price(row[4], row[6])
+        if price is None:
+            errors.append(f"Row {i + 1}: no valid price found")
+            continue
+        rows.append((d, price))
+    return rows, errors
+
+
+def _parse_mcb(all_rows):
+    """Parse MCB format: title row 0, header row 1, data from row 2+."""
+    rows, errors = [], []
+    for i, row in enumerate(all_rows[2:], start=2):
+        if not row or not row[0]:
+            continue
+        d = _parse_date(row[0])
+        if d is None:
+            errors.append(f"Row {i + 1}: could not parse date '{row[0]}'")
+            continue
+        price = _pick_price(row[3], row[1])
+        if price is None:
+            errors.append(f"Row {i + 1}: no valid price found")
+            continue
+        rows.append((d, price))
+    return rows, errors
+
+
+def parse_price_file(uploaded_file):
+    """Parse an xlsx file and return (rows, errors)."""
+    import openpyxl
+
+    wb = openpyxl.load_workbook(uploaded_file, read_only=True, data_only=True)
+    ws = wb.active
+    all_rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+
+    fmt = _detect_format(all_rows)
+    if fmt == "meezan":
+        return _parse_meezan(all_rows)
+    elif fmt == "mcb":
+        return _parse_mcb(all_rows)
+    else:
+        return [], ["Unrecognized file format. Expected Meezan/MUFAP or MCB format."]
+
+
+class PriceImportView(TemplateView):
+    template_name = "investments/price_import.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault("form", PriceImportForm())
+        return context
+
+    def post(self, request, *args, **kwargs):
+        # Confirm step
+        if request.POST.get("action") == "confirm":
+            return self._handle_confirm(request)
+
+        # Upload & preview step
+        form = PriceImportForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return self.render_to_response(self.get_context_data(form=form))
+
+        instrument = form.cleaned_data["instrument"]
+        uploaded_file = form.cleaned_data["file"]
+
+        rows, errors = parse_price_file(uploaded_file)
+        if not rows and errors:
+            for err in errors:
+                messages.error(request, err)
+            return self.render_to_response(self.get_context_data(form=form))
+
+        # Sort rows by date descending for display
+        rows.sort(key=lambda r: r[0], reverse=True)
+
+        preview_data = json.dumps(
+            [[d.isoformat(), str(p)] for d, p in rows]
+        )
+        return self.render_to_response(
+            self.get_context_data(
+                form=form,
+                preview_rows=rows,
+                preview_data=preview_data,
+                instrument=instrument,
+                parse_errors=errors,
+            )
+        )
+
+    def _handle_confirm(self, request):
+        instrument_id = request.POST.get("instrument_id")
+        preview_json = request.POST.get("preview_data", "[]")
+
+        try:
+            instrument = Instrument.objects.get(pk=instrument_id)
+        except Instrument.DoesNotExist:
+            messages.error(request, "Invalid instrument.")
+            return redirect("investments:price_import")
+
+        data = json.loads(preview_json)
+        created = updated = 0
+        for date_str, price_str in data:
+            d = date.fromisoformat(date_str)
+            p = Decimal(price_str)
+            _, was_created = InstrumentPrice.objects.update_or_create(
+                instrument=instrument,
+                date=d,
+                defaults={"price": p},
+            )
+            if was_created:
+                created += 1
+            else:
+                updated += 1
+
+        messages.success(
+            request,
+            f"Imported {created + updated} price(s) for {instrument.ticker}: "
+            f"{created} created, {updated} updated.",
+        )
+        return redirect("investments:bulk_prices")
 
 
 class PortfolioPerformanceView(TemplateView):

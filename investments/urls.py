@@ -20,6 +20,7 @@ urlpatterns = [
     # Prices
     path("prices/", views.BulkPriceEntryView.as_view(), name="bulk_prices"),
     path("prices/history/", views.PriceHistoryView.as_view(), name="price_history"),
+    path("prices/import/", views.PriceImportView.as_view(), name="price_import"),
     # Exchange rates
     path("exchange-rates/", views.ExchangeRateListView.as_view(), name="exchange_rates"),
 ]

@@ -50,6 +50,7 @@ Helpers:
 - `InstrumentListView/CreateView/UpdateView/DetailView` — instrument CRUD
 - `InvestmentTransactionListView/CreateView` — filterable transaction list and add form
 - `BulkPriceEntryView` — update prices for all active instruments at once
+- `PriceImportView` — upload xlsx → preview → confirm import flow. Auto-detects Meezan/MUFAP (13-col, repurchase from col 4) and MCB (4-col, redemption from col 3) formats. Uses `openpyxl` (read_only). Parsing helpers: `parse_price_file`, `_detect_format`, `_parse_meezan`, `_parse_mcb`, `_parse_date`, `_pick_price`. Stores preview as JSON in hidden field between steps. Uses `InstrumentPrice.update_or_create` for idempotent import.
 - `PriceHistoryView` — filterable price history
 - `ExchangeRateListView` — list + inline add form
 
@@ -61,6 +62,7 @@ Helpers:
 - `investments:transaction_list/create` → `/investments/transactions/...`
 - `investments:bulk_prices` → `/investments/prices/`
 - `investments:price_history` → `/investments/prices/history/`
+- `investments:price_import` → `/investments/prices/import/`
 - `investments:exchange_rates` → `/investments/exchange-rates/`
 
 ## Notes
