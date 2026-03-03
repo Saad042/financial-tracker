@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from accounts.models import Account
+from tags.models import Tag
 
 from .models import Category, Transaction
 
@@ -101,6 +102,17 @@ class TransactionFilterForm(forms.Form):
     amount_max = forms.DecimalField(
         required=False,
         widget=forms.NumberInput(attrs={"class": INPUT_CLASS, "placeholder": "Max", "step": "0.01", "min": "0"}),
+    )
+    tag = forms.ModelChoiceField(
+        required=False,
+        queryset=Tag.objects.filter(is_active=True),
+        empty_label="All tags",
+        widget=forms.Select(attrs={"class": INPUT_CLASS}),
+    )
+    tag_type = forms.ChoiceField(
+        required=False,
+        choices=[("", "All tag types"), ("place", "Places"), ("group", "Groups")],
+        widget=forms.Select(attrs={"class": INPUT_CLASS}),
     )
 
 

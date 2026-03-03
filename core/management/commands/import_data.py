@@ -11,6 +11,7 @@ from budgets.models import Budget
 from investments.models import Investment
 from loans.models import Loan
 from recurring.models import RecurringRule
+from tags.models import LoanTag, Tag, TransactionTag
 from transactions.models import Category, Transaction
 from transactions.signals import (
     capture_old_transaction,
@@ -63,7 +64,7 @@ class Command(BaseCommand):
         # Show summary
         self.stdout.write(f"Import file: {file_path}")
         self.stdout.write(f"Exported at: {data['meta'].get('exported_at', 'unknown')}")
-        for key in ("accounts", "categories", "transactions", "loans", "recurring_rules", "budgets", "investments"):
+        for key in ("accounts", "categories", "transactions", "loans", "recurring_rules", "budgets", "investments", "tags", "transaction_tags", "loan_tags"):
             count = len(data.get(key, []))
             self.stdout.write(f"  {key}: {count} records")
 
@@ -95,22 +96,28 @@ class Command(BaseCommand):
         try:
             with db_transaction.atomic():
                 # Delete in reverse dependency order
+                TransactionTag.objects.all().delete()
+                LoanTag.objects.all().delete()
                 Budget.objects.all().delete()
                 Investment.objects.all().delete()
                 Transaction.objects.all().delete()
                 RecurringRule.objects.all().delete()
                 Loan.objects.all().delete()
+                Tag.objects.all().delete()
                 Category.objects.all().delete()
                 Account.objects.all().delete()
 
                 # Restore in dependency order
                 self._bulk_create(Account, data.get("accounts", []))
                 self._bulk_create(Category, data.get("categories", []))
+                self._bulk_create(Tag, data.get("tags", []))
                 self._bulk_create(RecurringRule, data.get("recurring_rules", []))
                 self._bulk_create(Transaction, data.get("transactions", []))
                 self._bulk_create(Loan, data.get("loans", []))
                 self._bulk_create(Budget, data.get("budgets", []))
                 self._bulk_create(Investment, data.get("investments", []))
+                self._bulk_create(TransactionTag, data.get("transaction_tags", []))
+                self._bulk_create(LoanTag, data.get("loan_tags", []))
 
                 # Recalculate all account balances once
                 for account in Account.objects.all():

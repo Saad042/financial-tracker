@@ -9,6 +9,7 @@ from budgets.models import Budget
 from investments.models import Investment
 from loans.models import Loan
 from recurring.models import RecurringRule
+from tags.models import LoanTag, Tag, TransactionTag
 from transactions.models import Category, Transaction
 
 
@@ -79,6 +80,22 @@ class Command(BaseCommand):
                 Investment.objects.values(
                     "id", "name", "amount", "date", "platform",
                     "account_id", "notes", "created_at",
+                )
+            ),
+            "tags": list(
+                Tag.objects.values(
+                    "id", "name", "tag_type", "color", "description",
+                    "is_active", "created_at",
+                )
+            ),
+            "transaction_tags": list(
+                TransactionTag.objects.values(
+                    "id", "transaction_id", "tag_id", "created_at",
+                )
+            ),
+            "loan_tags": list(
+                LoanTag.objects.values(
+                    "id", "loan_id", "tag_id", "created_at",
                 )
             ),
         }

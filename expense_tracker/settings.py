@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'budgets',
     'reports',
     'investments',
+    'tags',
 ]
 
 MIDDLEWARE = [

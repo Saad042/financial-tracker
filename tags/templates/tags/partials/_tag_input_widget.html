@@ -1,0 +1,117 @@
+<!-- Tag Input Widget -->
+<div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+    <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Tags</p>
+
+    <!-- Places Section -->
+    <div class="mb-3">
+        <label class="block text-xs font-medium text-green-700 dark:text-green-400 mb-1">Places</label>
+        <div class="relative" id="tag-search-place-wrap">
+            <input type="text"
+                   id="tag-search-place"
+                   class="{{ input_class }}"
+                   placeholder="Search places..."
+                   autocomplete="off"
+                   hx-get="{% url 'tags:search' %}"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#tag-results-place"
+                   hx-include="#tag-search-place-wrap"
+                   name="q">
+            <input type="hidden" name="tag_type" value="place" id="tag-type-place">
+            <div id="tag-results-place" class="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
+        </div>
+        <div id="tag-chips-place" class="flex flex-wrap mt-2">
+            {% for tag in existing_place_tags %}
+            {% include "tags/partials/_tag_chip.html" with tag=tag %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Groups Section -->
+    <div>
+        <label class="block text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">Groups</label>
+        <div class="relative" id="tag-search-group-wrap">
+            <input type="text"
+                   id="tag-search-group"
+                   class="{{ input_class }}"
+                   placeholder="Search groups..."
+                   autocomplete="off"
+                   hx-get="{% url 'tags:search' %}"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#tag-results-group"
+                   hx-include="#tag-search-group-wrap"
+                   name="q">
+            <input type="hidden" name="tag_type" value="group" id="tag-type-group">
+            <div id="tag-results-group" class="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
+        </div>
+        <div id="tag-chips-group" class="flex flex-wrap mt-2">
+            {% for tag in existing_group_tags %}
+            {% include "tags/partials/_tag_chip.html" with tag=tag %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function selectTag(id, name, tagType, color) {
+    var container = document.getElementById('tag-chips-' + tagType);
+    // Check if tag already selected
+    if (container.querySelector('[data-tag-id="' + id + '"]')) return;
+    var chip = document.createElement('span');
+    chip.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-white mr-1 mb-1';
+    chip.style.backgroundColor = color;
+    chip.setAttribute('data-tag-id', id);
+    chip.innerHTML = name + '<input type="hidden" name="tags" value="' + id + '">' +
+        '<button type="button" onclick="removeTag(this)" class="ml-0.5 hover:text-gray-200">&times;</button>';
+    container.appendChild(chip);
+    // Clear search
+    document.getElementById('tag-search-' + tagType).value = '';
+    document.getElementById('tag-results-' + tagType).classList.add('hidden');
+    document.getElementById('tag-results-' + tagType).innerHTML = '';
+}
+
+function removeTag(btn) {
+    btn.closest('[data-tag-id]').remove();
+}
+
+function createAndSelectTag(name, tagType) {
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    fetch('{% url "tags:create_inline" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken},
+        body: 'name=' + encodeURIComponent(name) + '&tag_type=' + encodeURIComponent(tagType)
+    })
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+        if (html) {
+            var container = document.getElementById('tag-chips-' + tagType);
+            container.insertAdjacentHTML('beforeend', html);
+        }
+        document.getElementById('tag-search-' + tagType).value = '';
+        document.getElementById('tag-results-' + tagType).classList.add('hidden');
+        document.getElementById('tag-results-' + tagType).innerHTML = '';
+    });
+}
+
+// Show/hide results dropdown
+document.addEventListener('htmx:afterSwap', function(e) {
+    if (e.detail.target.id === 'tag-results-place' || e.detail.target.id === 'tag-results-group') {
+        var el = e.detail.target;
+        if (el.innerHTML.trim()) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    }
+});
+
+// Hide dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    ['place', 'group'].forEach(function(t) {
+        var results = document.getElementById('tag-results-' + t);
+        var search = document.getElementById('tag-search-' + t);
+        if (results && search && !results.contains(e.target) && e.target !== search) {
+            results.classList.add('hidden');
+        }
+    });
+});
+</script>

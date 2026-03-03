@@ -7,10 +7,37 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView
 
+from tags.models import LoanTag, Tag
 from transactions.models import Category, Transaction
 
 from .forms import LoanForm, LoanRepayForm
 from .models import Loan
+
+INPUT_CLASS = "w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+
+
+def _save_loan_tags(loan, post_data):
+    """Save tags from POST data for a loan (full-replace)."""
+    LoanTag.objects.filter(loan=loan).delete()
+    tag_ids = post_data.getlist("tags")
+    if tag_ids:
+        tags = Tag.objects.filter(pk__in=tag_ids)
+        LoanTag.objects.bulk_create(
+            [LoanTag(loan=loan, tag=tag) for tag in tags]
+        )
+
+
+def _get_loan_tag_context(loan=None):
+    """Build tag context for loan forms."""
+    context = {"input_class": INPUT_CLASS}
+    if loan and loan.pk:
+        lt = LoanTag.objects.filter(loan=loan).select_related("tag")
+        context["existing_place_tags"] = [t.tag for t in lt if t.tag.tag_type == Tag.PLACE]
+        context["existing_group_tags"] = [t.tag for t in lt if t.tag.tag_type == Tag.GROUP]
+    else:
+        context["existing_place_tags"] = []
+        context["existing_group_tags"] = []
+    return context
 
 
 class LoanListView(ListView):
@@ -37,9 +64,16 @@ class LoanCreateView(CreateView):
     template_name = "loans/loan_form.html"
     success_url = reverse_lazy("loans:list")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_get_loan_tag_context())
+        return context
+
     def form_valid(self, form):
+        response = super().form_valid(form)
+        _save_loan_tags(self.object, self.request.POST)
         messages.success(self.request, "Loan recorded successfully.")
-        return super().form_valid(form)
+        return response
 
 
 class LoanDetailView(DetailView):
@@ -54,6 +88,8 @@ class LoanDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         if self.object.status == Loan.OUTSTANDING:
             context["repay_form"] = LoanRepayForm()
+        lt = LoanTag.objects.filter(loan=self.object).select_related("tag")
+        context["loan_tags"] = [t.tag for t in lt]
         return context
 
 

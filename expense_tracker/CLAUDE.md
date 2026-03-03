@@ -23,5 +23,6 @@ Root URL configuration:
 - `/budgets/` → budgets app URLs
 - `/reports/` → reports app URLs
 - `/investments/` → investments app URLs
+- `/tags/` → tags app URLs
 - `/admin/` → Django admin
 - `/__reload__/` → browser reload (DEBUG only)

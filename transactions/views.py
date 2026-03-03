@@ -8,15 +8,46 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
+from tags.models import Tag, TransactionTag
+
 from .forms import TransactionFilterForm, TransactionForm, TransferForm
 from .models import Category, Transaction
+
+INPUT_CLASS = "w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+
+
+def _save_transaction_tags(transaction, post_data):
+    """Save tags from POST data for a transaction (full-replace)."""
+    TransactionTag.objects.filter(transaction=transaction).delete()
+    tag_ids = post_data.getlist("tags")
+    if tag_ids:
+        tags = Tag.objects.filter(pk__in=tag_ids)
+        TransactionTag.objects.bulk_create(
+            [TransactionTag(transaction=transaction, tag=tag) for tag in tags]
+        )
+
+
+def _get_tag_context(transaction=None):
+    """Build tag context for transaction forms."""
+    context = {"input_class": INPUT_CLASS}
+    if transaction and transaction.pk:
+        tt = TransactionTag.objects.filter(transaction=transaction).select_related("tag")
+        context["existing_place_tags"] = [t.tag for t in tt if t.tag.tag_type == Tag.PLACE]
+        context["existing_group_tags"] = [t.tag for t in tt if t.tag.tag_type == Tag.GROUP]
+    else:
+        context["existing_place_tags"] = []
+        context["existing_group_tags"] = []
+    return context
 
 
 def _apply_transaction_filters(qs, params):
     """Apply filter params (from GET dict) to a Transaction queryset."""
     search = params.get("search", "").strip()
     if search:
-        qs = qs.filter(description__icontains=search)
+        qs = qs.filter(
+            Q(description__icontains=search)
+            | Q(transaction_tags__tag__name__icontains=search)
+        )
 
     txn_type = params.get("type", "")
     if txn_type in ("income", "expense", "transfer"):
@@ -49,7 +80,15 @@ def _apply_transaction_filters(qs, params):
     if amount_max:
         qs = qs.filter(amount__lte=amount_max)
 
-    return qs
+    tag_id = params.get("tag", "")
+    if tag_id:
+        qs = qs.filter(transaction_tags__tag_id=tag_id)
+
+    tag_type = params.get("tag_type", "")
+    if tag_type in ("place", "group"):
+        qs = qs.filter(transaction_tags__tag__tag_type=tag_type)
+
+    return qs.distinct()
 
 
 class TransactionListView(ListView):
@@ -59,7 +98,9 @@ class TransactionListView(ListView):
     paginate_by = 25
 
     def get_queryset(self):
-        qs = Transaction.objects.select_related("category", "account", "transfer_to")
+        qs = Transaction.objects.select_related(
+            "category", "account", "transfer_to"
+        ).prefetch_related("transaction_tags__tag")
         return _apply_transaction_filters(qs, self.request.GET)
 
     def get_context_data(self, **kwargs):
@@ -79,9 +120,16 @@ class TransactionCreateView(CreateView):
     template_name = "transactions/transaction_form.html"
     success_url = reverse_lazy("transactions:list")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_get_tag_context())
+        return context
+
     def form_valid(self, form):
+        response = super().form_valid(form)
+        _save_transaction_tags(self.object, self.request.POST)
         messages.success(self.request, "Transaction added successfully.")
-        return super().form_valid(form)
+        return response
 
 
 class TransactionUpdateView(UpdateView):
@@ -101,9 +149,16 @@ class TransactionUpdateView(UpdateView):
             initial["to_account"] = self.object.transfer_to
         return initial
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_get_tag_context(self.object))
+        return context
+
     def form_valid(self, form):
+        response = super().form_valid(form)
+        _save_transaction_tags(self.object, self.request.POST)
         messages.success(self.request, "Transaction updated successfully.")
-        return super().form_valid(form)
+        return response
 
 
 class TransactionDeleteView(DeleteView):
@@ -122,9 +177,16 @@ class TransferCreateView(CreateView):
     template_name = "transactions/transfer_form.html"
     success_url = reverse_lazy("transactions:list")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_get_tag_context())
+        return context
+
     def form_valid(self, form):
+        response = super().form_valid(form)
+        _save_transaction_tags(self.object, self.request.POST)
         messages.success(self.request, "Transfer recorded successfully.")
-        return super().form_valid(form)
+        return response
 
 
 class TransactionCSVExportView(View):

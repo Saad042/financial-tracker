@@ -32,17 +32,19 @@ Signals are imported in `apps.py` → `ready()`.
 
 - `TransactionForm` — for income/expense. Validates category type matches transaction type. Type select has `hx-get` to dynamically filter the category dropdown.
 - `TransferForm` — for transfers. Has `from_account`/`to_account` fields. Prevents same-account transfer. Sets `type=TRANSFER` and maps accounts in `save()`.
-- `TransactionFilterForm` — plain Form (not ModelForm) for search/filtering on the transaction list. Fields: search, type, category, account, date_from/date_to, amount_min/amount_max.
+- `TransactionFilterForm` — plain Form (not ModelForm) for search/filtering on the transaction list. Fields: search, type, category, account, date_from/date_to, amount_min/amount_max, tag (ModelChoiceField), tag_type (place/group).
 
 ## Views
 
-- `TransactionListView` — paginated (25) with combinable filters. Returns `_transaction_table.html` partial when `request.htmx` is true (HTMX partial swap). Passes `TransactionFilterForm` in context.
-- `TransactionCreateView` / `TransactionUpdateView` — uses `TransactionForm` or `TransferForm` depending on type
+- `TransactionListView` — paginated (25) with combinable filters. Returns `_transaction_table.html` partial when `request.htmx` is true (HTMX partial swap). Passes `TransactionFilterForm` in context. Uses `prefetch_related("transaction_tags__tag")` to avoid N+1.
+- `TransactionCreateView` / `TransactionUpdateView` — uses `TransactionForm` or `TransferForm` depending on type. Passes tag context via `_get_tag_context()` and saves tags via `_save_transaction_tags()` in `form_valid`.
 - `TransactionDeleteView` — confirmation page
-- `TransferCreateView` — separate view for creating transfers
+- `TransferCreateView` — separate view for creating transfers. Also handles tags (same pattern as TransactionCreateView).
 - `TransactionCSVExportView` — exports filtered transactions as CSV. Reuses `_apply_transaction_filters()`.
 - `category_options` — HTMX endpoint returning `<option>` tags filtered by type
-- `_apply_transaction_filters(qs, params)` — shared helper that applies GET params to a Transaction queryset. Used by list view and CSV export.
+- `_apply_transaction_filters(qs, params)` — shared helper that applies GET params to a Transaction queryset. Used by list view and CSV export. Search includes tag names. Supports `tag` and `tag_type` filter params. Returns `.distinct()`.
+- `_save_transaction_tags(transaction, post_data)` — deletes existing TransactionTag rows, recreates from POST `tags` list (full-replace pattern).
+- `_get_tag_context(transaction=None)` — builds context dict with `input_class`, `existing_place_tags`, `existing_group_tags` for the tag input widget.
 
 ## URLs (namespace: `transactions`)
 
@@ -56,9 +58,9 @@ Signals are imported in `apps.py` → `ready()`.
 
 ## Templates
 
-- `transactions/templates/transactions/` — list, form, delete confirmation, transfer form
+- `transactions/templates/transactions/` — list, form, delete confirmation, transfer form. Form templates include `tags/partials/_tag_input_widget.html` for tag selection.
 - `transactions/templates/transactions/partials/_category_options.html` — HTMX partial for category dropdown
-- `transactions/templates/transactions/partials/_transaction_table.html` — HTMX partial for transaction table + pagination. Pagination links use `{% querystring %}` to preserve filter params, with `hx-get` + `hx-target="#transaction-results"` + `hx-push-url="true"`.
+- `transactions/templates/transactions/partials/_transaction_table.html` — HTMX partial for transaction table + pagination. Renders tag chips in description column. Pagination links use `{% querystring %}` to preserve filter params, with `hx-get` + `hx-target="#transaction-results"` + `hx-push-url="true"`.
 
 ## HTMX Filtering Pattern
 

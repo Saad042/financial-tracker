@@ -25,7 +25,7 @@ Usage: `{% load currency %}` then `{{ amount|pkr }}`
 
 ### `export_data`
 
-Exports all app data (accounts, categories, transactions, loans, recurring_rules, budgets, investments) to a JSON file with a `meta` block containing app version and timestamp. Custom `DecimalDateEncoder` handles Decimal and date serialization.
+Exports all app data (accounts, categories, transactions, loans, recurring_rules, budgets, investments, tags, transaction_tags, loan_tags) to a JSON file with a `meta` block containing app version and timestamp. Custom `DecimalDateEncoder` handles Decimal and date serialization.
 
 ```bash
 uv run python manage.py export_data                        # default: expense_tracker_export.json
@@ -34,7 +34,7 @@ uv run python manage.py export_data --output backup.json   # custom path
 
 ### `import_data`
 
-Full-replace import inside `atomic()`. Deletes all data in reverse dependency order, then bulk-creates from JSON in dependency order. Disconnects transaction, loan, and investment signals during import to avoid per-row balance recalculation, then calls `recalculate_balance()` on all accounts once at the end.
+Full-replace import inside `atomic()`. Deletes all data in reverse dependency order (including TransactionTag, LoanTag, Tag), then bulk-creates from JSON in dependency order. Disconnects transaction, loan, and investment signals during import to avoid per-row balance recalculation, then calls `recalculate_balance()` on all accounts once at the end. Backward compatible — uses `data.get()` for tag keys so older export files without tags still import cleanly.
 
 ```bash
 uv run python manage.py import_data expense_tracker_export.json        # interactive prompt

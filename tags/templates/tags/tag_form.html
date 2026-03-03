@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Transfer - Expense Tracker{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit{% else %}New{% endif %} Tag - Expense Tracker{% endblock %}
 
 {% block content %}
 <div class="max-w-lg mx-auto">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{% if form.instance.pk %}Edit Transfer{% else %}New Transfer{% endif %}</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{% if form.instance.pk %}Edit Tag{% else %}New Tag{% endif %}</h1>
 
     <form method="post" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         {% csrf_token %}
@@ -19,8 +19,6 @@
         </div>
         {% endfor %}
 
-        {% include "tags/partials/_tag_input_widget.html" %}
-
         {% if form.non_field_errors %}
         <div class="rounded-lg bg-red-50 dark:bg-red-900/30 px-4 py-3 text-sm text-red-600 dark:text-red-400">
             {% for error in form.non_field_errors %}
@@ -30,10 +28,10 @@
         {% endif %}
 
         <div class="flex items-center space-x-3 pt-2">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-                {% if form.instance.pk %}Update{% else %}Record{% endif %} Transfer
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                {% if form.instance.pk %}Update{% else %}Create{% endif %} Tag
             </button>
-            <a href="{% url 'transactions:list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Cancel</a>
+            <a href="{% url 'tags:list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Cancel</a>
         </div>
     </form>
 </div>

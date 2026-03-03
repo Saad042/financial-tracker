@@ -33,6 +33,7 @@
                         <a href="{% url 'budgets:overview' %}" class="{% if '/budgets/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Budgets</a>
                         <a href="{% url 'reports:hub' %}" class="{% if '/reports/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Reports</a>
                         <a href="{% url 'investments:list' %}" class="{% if '/investments/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Investments</a>
+                        <a href="{% url 'tags:list' %}" class="{% if '/tags/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Tags</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
@@ -72,6 +73,7 @@
                 <a href="{% url 'budgets:overview' %}" class="block {% if '/budgets/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Budgets</a>
                 <a href="{% url 'reports:hub' %}" class="block {% if '/reports/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Reports</a>
                 <a href="{% url 'investments:list' %}" class="block {% if '/investments/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Investments</a>
+                <a href="{% url 'tags:list' %}" class="block {% if '/tags/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Tags</a>
             </div>
             <div class="px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex space-x-3">
                 <a href="{% url 'transactions:create' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">+ Add Transaction</a>

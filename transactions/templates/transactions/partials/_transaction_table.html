@@ -28,6 +28,9 @@
                     {% if txn.type == "transfer" %}
                     <span class="text-gray-400 dark:text-gray-500">{{ txn.account.name }} &rarr; {{ txn.transfer_to.name }}</span>
                     {% endif %}
+                    {% for tt in txn.transaction_tags.all %}
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium text-white ml-1" style="background-color: {{ tt.tag.display_color }}">{{ tt.tag.name }}</span>
+                    {% endfor %}
                 </td>
                 <td class="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{{ txn.category|default:"-" }}</td>
                 <td class="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{{ txn.account.name }}</td>

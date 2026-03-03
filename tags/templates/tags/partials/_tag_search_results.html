@@ -1,0 +1,16 @@
+{% for tag in tags %}
+<button type="button"
+        onclick="selectTag({{ tag.pk }}, '{{ tag.name|escapejs }}', '{{ tag.tag_type }}', '{{ tag.display_color }}')"
+        class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center">
+    <span class="inline-block w-2 h-2 rounded-full mr-2" style="background-color: {{ tag.display_color }}"></span>
+    {{ tag.name }}
+</button>
+{% empty %}
+{% if q %}
+<button type="button"
+        onclick="createAndSelectTag('{{ q|escapejs }}', '{{ tag_type }}')"
+        class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-emerald-600 dark:text-emerald-400">
+    + Create "{{ q }}"
+</button>
+{% endif %}
+{% endfor %}

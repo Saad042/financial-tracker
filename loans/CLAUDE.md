@@ -26,8 +26,8 @@ Signals are imported in `apps.py` → `ready()`.
 ## Views
 
 - `LoanListView` — all loans with outstanding total/count in context
-- `LoanCreateView` — standard create form
-- `LoanDetailView` — loan info card + inline repay form (if outstanding)
+- `LoanCreateView` — standard create form. Passes tag context via `_get_loan_tag_context()` and saves tags via `_save_loan_tags()` in `form_valid`.
+- `LoanDetailView` — loan info card + inline repay form (if outstanding). Shows tag chips via `loan_tags` context variable.
 - `LoanRepayView` (POST only) — marks loan repaid, creates income Transaction with "Loan Repayment Received" category
 
 ## URLs (namespace: `loans`)
@@ -40,4 +40,5 @@ Signals are imported in `apps.py` → `ready()`.
 ## Notes
 
 - Repaying a loan creates a Transaction (income) on the `repaid_to_account`, not the original lending account.
-- Templates are in `loans/templates/loans/`.
+- Templates are in `loans/templates/loans/`. Loan form includes `tags/partials/_tag_input_widget.html`. Loan detail shows tag chips.
+- `_save_loan_tags(loan, post_data)` and `_get_loan_tag_context(loan=None)` are helper functions in `views.py` (same pattern as transactions).

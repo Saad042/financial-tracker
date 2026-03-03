@@ -36,6 +36,7 @@ recurring/           # RecurringRule model, CRUD views, generate_recurring comma
 budgets/             # Budget model, overview/set/copy views with progress bars
 reports/             # Report hub, monthly breakdown (Chart.js), income/expense trends
 investments/         # Investment model, signals, CRUD views (log only, deducts from account)
+tags/                # Tag model (place/group), TransactionTag/LoanTag through models, CRUD + HTMX search
 core/                # Dashboard view, shared template tags, export/import commands
 theme/               # Tailwind CSS theme app (auto-generated, don't edit manually)
 templates/           # Project-level templates (base.html, dashboard, partials)
@@ -50,13 +51,14 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - **Recurring:** RecurringRule defines repeating transactions. The `generate_recurring` management command creates Transaction rows (idempotent per period). Transaction has a nullable `recurring_rule` FK (`on_delete=SET_NULL`).
 - **Budgets:** Budget = (category, month) pair with an amount. Properties compute `spent`, `remaining`, `percent_used`, `status` (safe/warning/exceeded). Budget alerts surface on the dashboard.
 - **Categories:** Pre-seeded via data migration (`0002_seed_categories.py`). System categories have `is_system=True`. Categories belong to the `transactions` app.
-- **FK safety:** All foreign keys use `on_delete=PROTECT`, except `Transaction.recurring_rule` which uses `SET_NULL` so deleting a rule orphans its transactions.
+- **Tags:** Two tag types — places (where) and groups (linking related transactions). Separate `TransactionTag`/`LoanTag` through models in the `tags` app (not ManyToManyField). Tags are soft-deleted via `is_active=False`. HTMX-powered search + inline creation widget reused across transaction, transfer, and loan forms. Tag names included in transaction search filter. Green accent for places, purple for groups.
+- **FK safety:** All foreign keys use `on_delete=PROTECT`, except `Transaction.recurring_rule` which uses `SET_NULL` so deleting a rule orphans its transactions. Tag through models use CASCADE on the transaction/loan FK and PROTECT on the tag FK.
 - **HTMX:** Used for dynamic category dropdown filtering by transaction type. Pattern: `hx-get` on the type select triggers a view that returns `<option>` HTML. Reused in recurring rule form. Also used for transaction list filtering — view returns a partial template when `request.htmx` is true.
-- **Transaction filtering:** `_apply_transaction_filters(qs, params)` in `transactions/views.py` is a shared helper reused by the list view and CSV export. Filters: search (description icontains), type, category (parent + children), account, date range, amount range.
+- **Transaction filtering:** `_apply_transaction_filters(qs, params)` in `transactions/views.py` is a shared helper reused by the list view and CSV export. Filters: search (description + tag name icontains), type, category (parent + children), account, date range, amount range, tag (specific ID), tag_type (place/group). Uses `.distinct()` to avoid M2M join duplicates.
 - **Charts:** Chart.js loaded via CDN only on report templates (`{% block extra_js %}`). Not loaded globally. Charts use theme-aware colors (text, grid, borders) detected via `document.documentElement.classList.contains('dark')`.
 - **Investments:** Investment model tracks money invested (log only). Deducts from account balance via signals (same pattern as loans). Excluded from spending reports. Uses purple accent color.
 - **Dark mode:** Class-based strategy via `@custom-variant dark` in `theme/static_src/src/styles.css`. Theme preference stored in a `theme` cookie (light/dark/system), read synchronously in `<head>` to prevent flash. Toggle button in nav bar cycles through Light → Dark → System. No Django model needed — pure frontend. All templates use `dark:` Tailwind variants. Form `INPUT_CLASS` constants in each app's `forms.py` include dark variants.
-- **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Import disconnects transaction/loan/investment signals during bulk create, then recalculates all account balances once at the end.
+- **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Exports/imports tags, transaction_tags, and loan_tags alongside other models. Import disconnects transaction/loan/investment signals during bulk create, then recalculates all account balances once at the end. Backward compatible — uses `data.get()` for tag keys.
 - **Mobile nav:** Hamburger menu (below `sm` breakpoint) with all nav links + action buttons. Desktop buttons hidden on mobile.
 - **Active nav links:** `request.path` used to highlight current section with `text-emerald-600 font-semibold` (light) / `text-emerald-400` (dark) in both desktop and mobile menus.
 
@@ -67,7 +69,7 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - Use `{% load currency %}` and the `|pkr` filter to format amounts
 - Forms use Tailwind classes applied via `INPUT_CLASS` constant in each app's `forms.py` (includes dark mode variants)
 - Views use Django's class-based generic views (ListView, CreateView, etc.)
-- URL namespaces: `accounts:list`, `transactions:create`, `loans:list`, `recurring:list`, `budgets:overview`, `reports:hub`, `investments:list`, etc. Transfer create is a root-level name: `transfer_create`
+- URL namespaces: `accounts:list`, `transactions:create`, `loans:list`, `recurring:list`, `budgets:overview`, `reports:hub`, `investments:list`, `tags:list`, etc. Transfer create is a root-level name: `transfer_create`
 
 ## Build Phases
 

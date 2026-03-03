@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Groups - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Groups</h1>
+    <a href="{% url 'tags:list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Back to Tags</a>
+</div>
+
+{% if groups %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for group in groups %}
+    <a href="{% url 'tags:detail' group.pk %}" class="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-shadow">
+        <div class="flex items-center mb-3">
+            <span class="inline-block w-3 h-3 rounded-full mr-2" style="background-color: {{ group.display_color }}"></span>
+            <h3 class="font-semibold text-purple-700 dark:text-purple-400">{{ group.name }}</h3>
+        </div>
+        {% if group.description %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ group.description }}</p>
+        {% endif %}
+        <div class="grid grid-cols-2 gap-2 text-sm">
+            <div>
+                <p class="text-gray-500 dark:text-gray-400 text-xs">Total</p>
+                <p class="font-semibold text-gray-900 dark:text-gray-100">{{ group.total_amount|pkr }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500 dark:text-gray-400 text-xs">Transactions</p>
+                <p class="font-semibold text-gray-900 dark:text-gray-100">{{ group.transaction_count }}</p>
+            </div>
+        </div>
+        {% if group.date_min and group.date_max %}
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">{{ group.date_min }} — {{ group.date_max }}</p>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <p class="text-gray-500 dark:text-gray-400">No group tags yet.</p>
+</div>
+{% endif %}
+{% endblock %}
