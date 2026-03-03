@@ -52,6 +52,7 @@ class InvestmentTransactionForm(forms.ModelForm):
             "transaction_type",
             "units",
             "price_per_unit",
+            "total_amount",
             "brokerage_fee",
             "tax",
             "account",
@@ -66,7 +67,7 @@ class InvestmentTransactionForm(forms.ModelForm):
                     "class": INPUT_CLASS,
                     "placeholder": "0",
                     "step": "0.000001",
-                    "min": "0.000001",
+                    "min": "0",
                 }
             ),
             "price_per_unit": forms.NumberInput(
@@ -74,6 +75,14 @@ class InvestmentTransactionForm(forms.ModelForm):
                     "class": INPUT_CLASS,
                     "placeholder": "0.00",
                     "step": "0.0001",
+                    "min": "0",
+                }
+            ),
+            "total_amount": forms.NumberInput(
+                attrs={
+                    "class": INPUT_CLASS,
+                    "placeholder": "0.00",
+                    "step": "0.01",
                     "min": "0",
                 }
             ),
@@ -102,10 +111,17 @@ class InvestmentTransactionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["instrument"].queryset = Instrument.objects.filter(is_active=True)
+        self.fields["total_amount"].required = False
+        self.fields["units"].required = False
+        self.fields["price_per_unit"].required = False
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        instance.total_amount = instance.units * instance.price_per_unit
+        if instance.transaction_type == InvestmentTransaction.DIVIDEND:
+            instance.units = instance.units or 0
+            instance.price_per_unit = instance.price_per_unit or 0
+        else:
+            instance.total_amount = instance.units * instance.price_per_unit
         if commit:
             instance.save()
         return instance

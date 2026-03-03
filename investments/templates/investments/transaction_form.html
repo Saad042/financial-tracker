@@ -10,7 +10,7 @@
         {% csrf_token %}
 
         {% for field in form %}
-        <div>
+        <div id="field-{{ field.html_name }}" {% if field.html_name == "total_amount" %}style="display:none"{% endif %}>
             <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ field.label }}</label>
             {{ field }}
             {% if field.errors %}
@@ -19,8 +19,8 @@
         </div>
         {% endfor %}
 
-        <!-- Auto-calculated total display -->
-        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+        <!-- Auto-calculated total display (for buy/sell/reinvestment) -->
+        <div id="calc-total-box" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <p class="text-sm text-gray-500 dark:text-gray-400">Estimated Total: <span id="calc-total" class="font-semibold text-gray-900 dark:text-gray-100">0.00</span></p>
         </div>
 
@@ -45,9 +45,14 @@
 {% block extra_js %}
 <script>
 (function() {
+    var typeField = document.getElementById('id_transaction_type');
     var unitsField = document.getElementById('id_units');
     var priceField = document.getElementById('id_price_per_unit');
     var totalSpan = document.getElementById('calc-total');
+    var calcBox = document.getElementById('calc-total-box');
+    var unitsRow = document.getElementById('field-units');
+    var priceRow = document.getElementById('field-price_per_unit');
+    var totalAmountRow = document.getElementById('field-total_amount');
 
     function updateTotal() {
         var units = parseFloat(unitsField.value) || 0;
@@ -55,6 +60,18 @@
         totalSpan.textContent = (units * price).toFixed(2);
     }
 
+    function toggleFields() {
+        var isDividend = typeField.value === 'dividend';
+        unitsRow.style.display = isDividend ? 'none' : '';
+        priceRow.style.display = isDividend ? 'none' : '';
+        totalAmountRow.style.display = isDividend ? '' : 'none';
+        calcBox.style.display = isDividend ? 'none' : '';
+    }
+
+    if (typeField) {
+        typeField.addEventListener('change', toggleFields);
+        toggleFields();
+    }
     if (unitsField && priceField) {
         unitsField.addEventListener('input', updateTotal);
         priceField.addEventListener('input', updateTotal);

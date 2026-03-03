@@ -53,9 +53,11 @@ class Instrument(models.Model):
 
     @property
     def current_holdings(self):
-        """Net units held: total bought - total sold."""
+        """Net units held: total bought + reinvested - total sold."""
         buys = (
-            self.transactions.filter(transaction_type=InvestmentTransaction.BUY)
+            self.transactions.filter(
+                transaction_type__in=[InvestmentTransaction.BUY, InvestmentTransaction.REINVESTMENT]
+            )
             .aggregate(total=models.Sum("units"))["total"]
             or Decimal("0")
         )
@@ -69,19 +71,63 @@ class Instrument(models.Model):
     @property
     def total_units_bought(self):
         return (
-            self.transactions.filter(transaction_type=InvestmentTransaction.BUY)
+            self.transactions.filter(
+                transaction_type__in=[InvestmentTransaction.BUY, InvestmentTransaction.REINVESTMENT]
+            )
             .aggregate(total=models.Sum("units"))["total"]
             or Decimal("0")
         )
 
     @property
     def total_cost_basis(self):
-        """Total cost of all buys including fees and tax."""
+        """Total cost of all buys and reinvestments including fees and tax."""
         from django.db.models import F, Sum
 
         result = (
+            self.transactions.filter(
+                transaction_type__in=[InvestmentTransaction.BUY, InvestmentTransaction.REINVESTMENT]
+            )
+            .aggregate(total=Sum(F("total_amount") + F("brokerage_fee") + F("tax")))
+        )
+        return result["total"] or Decimal("0")
+
+    @property
+    def net_cash_invested(self):
+        """Net cash deployed: buy costs - sell proceeds - dividend income."""
+        from django.db.models import F, Sum
+
+        buys = (
             self.transactions.filter(transaction_type=InvestmentTransaction.BUY)
             .aggregate(total=Sum(F("total_amount") + F("brokerage_fee") + F("tax")))
+        )["total"] or Decimal("0")
+        cash_returned = (
+            self.transactions.filter(
+                transaction_type__in=[
+                    InvestmentTransaction.SELL,
+                    InvestmentTransaction.DIVIDEND,
+                ]
+            )
+            .aggregate(total=Sum(F("total_amount") - F("brokerage_fee") - F("tax")))
+        )["total"] or Decimal("0")
+        return buys - cash_returned
+
+    @property
+    def total_reinvested(self):
+        """Total value of dividend reinvestments."""
+        return (
+            self.transactions.filter(transaction_type=InvestmentTransaction.REINVESTMENT)
+            .aggregate(total=models.Sum("total_amount"))["total"]
+            or Decimal("0")
+        )
+
+    @property
+    def total_dividends(self):
+        """Total cash dividends received (net of fees and tax)."""
+        from django.db.models import F, Sum
+
+        result = (
+            self.transactions.filter(transaction_type=InvestmentTransaction.DIVIDEND)
+            .aggregate(total=Sum(F("total_amount") - F("brokerage_fee") - F("tax")))
         )
         return result["total"] or Decimal("0")
 
@@ -173,16 +219,20 @@ class InstrumentPrice(models.Model):
 class InvestmentTransaction(models.Model):
     BUY = "buy"
     SELL = "sell"
+    REINVESTMENT = "reinvestment"
+    DIVIDEND = "dividend"
     TRANSACTION_TYPE_CHOICES = [
         (BUY, "Buy"),
         (SELL, "Sell"),
+        (REINVESTMENT, "Reinvestment"),
+        (DIVIDEND, "Dividend"),
     ]
 
     date = models.DateField(default=timezone.now)
     instrument = models.ForeignKey(
         Instrument, on_delete=models.PROTECT, related_name="transactions"
     )
-    transaction_type = models.CharField(max_length=4, choices=TRANSACTION_TYPE_CHOICES)
+    transaction_type = models.CharField(max_length=12, choices=TRANSACTION_TYPE_CHOICES)
     units = models.DecimalField(max_digits=14, decimal_places=6)
     price_per_unit = models.DecimalField(max_digits=14, decimal_places=4)
     total_amount = models.DecimalField(max_digits=14, decimal_places=2)
@@ -206,10 +256,12 @@ class InvestmentTransaction(models.Model):
 
     @property
     def net_amount(self):
-        """Net cash impact: buy deducts, sell credits (inclusive of fees)."""
+        """Net cash impact: buy deducts, sell/dividend credits, reinvestment zero."""
+        if self.transaction_type == self.REINVESTMENT:
+            return Decimal("0")
         if self.transaction_type == self.BUY:
             return self.total_amount + self.brokerage_fee + self.tax
-        else:
+        else:  # sell or dividend
             return self.total_amount - self.brokerage_fee - self.tax
 
 

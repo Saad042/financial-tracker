@@ -20,6 +20,8 @@ def capture_old_investment_transaction(sender, instance, **kwargs):
 @receiver(post_save, sender=InvestmentTransaction)
 def update_balances_on_investment_transaction_save(sender, instance, **kwargs):
     """Recalculate balances for all affected accounts after investment transaction save."""
+    if instance.transaction_type == InvestmentTransaction.REINVESTMENT:
+        return
     from accounts.models import Account
 
     account_ids = {instance.account_id}
@@ -35,6 +37,8 @@ def update_balances_on_investment_transaction_save(sender, instance, **kwargs):
 @receiver(post_delete, sender=InvestmentTransaction)
 def update_balances_on_investment_transaction_delete(sender, instance, **kwargs):
     """Recalculate balances for affected accounts after investment transaction delete."""
+    if instance.transaction_type == InvestmentTransaction.REINVESTMENT:
+        return
     from accounts.models import Account
 
     for account in Account.objects.filter(id=instance.account_id):

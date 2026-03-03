@@ -80,6 +80,17 @@ class Account(models.Model):
             )["total"]
             or Decimal("0.00")
         )
+        # Dividend: credits total_amount - brokerage_fee - tax to account
+        investment_dividends = (
+            InvestmentTransaction.objects.filter(
+                account=self, transaction_type=InvestmentTransaction.DIVIDEND
+            ).aggregate(
+                total=models.Sum(
+                    models.F("total_amount") - models.F("brokerage_fee") - models.F("tax")
+                )
+            )["total"]
+            or Decimal("0.00")
+        )
 
-        self.balance = self.initial_balance + income - expense - transfers_out + transfers_in - loans_out - investment_buys + investment_sells
+        self.balance = self.initial_balance + income - expense - transfers_out + transfers_in - loans_out - investment_buys + investment_sells + investment_dividends
         self.save(update_fields=["balance", "updated_at"])
