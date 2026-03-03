@@ -1,25 +1,25 @@
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
-from .models import Investment
+from .models import InvestmentTransaction
 
 
-@receiver(pre_save, sender=Investment)
-def capture_old_investment(sender, instance, **kwargs):
+@receiver(pre_save, sender=InvestmentTransaction)
+def capture_old_investment_transaction(sender, instance, **kwargs):
     """Store old account ID before save so we can recalculate affected accounts."""
     if instance.pk:
         try:
-            old = Investment.objects.get(pk=instance.pk)
+            old = InvestmentTransaction.objects.get(pk=instance.pk)
             instance._old_account_id = old.account_id
-        except Investment.DoesNotExist:
+        except InvestmentTransaction.DoesNotExist:
             instance._old_account_id = None
     else:
         instance._old_account_id = None
 
 
-@receiver(post_save, sender=Investment)
-def update_balances_on_investment_save(sender, instance, **kwargs):
-    """Recalculate balances for all affected accounts after investment save."""
+@receiver(post_save, sender=InvestmentTransaction)
+def update_balances_on_investment_transaction_save(sender, instance, **kwargs):
+    """Recalculate balances for all affected accounts after investment transaction save."""
     from accounts.models import Account
 
     account_ids = {instance.account_id}
@@ -32,9 +32,9 @@ def update_balances_on_investment_save(sender, instance, **kwargs):
         account.recalculate_balance()
 
 
-@receiver(post_delete, sender=Investment)
-def update_balances_on_investment_delete(sender, instance, **kwargs):
-    """Recalculate balances for affected accounts after investment delete."""
+@receiver(post_delete, sender=InvestmentTransaction)
+def update_balances_on_investment_transaction_delete(sender, instance, **kwargs):
+    """Recalculate balances for affected accounts after investment transaction delete."""
     from accounts.models import Account
 
     for account in Account.objects.filter(id=instance.account_id):

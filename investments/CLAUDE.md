@@ -1,42 +1,58 @@
 # investments app
 
-Tracks money invested (log only). Investments deduct from the source account's balance but are excluded from spending reports.
+Full investment portfolio tracking with support for Pakistani stocks (PSX), international equities, crypto, and mutual funds. Manual price entry with portfolio calculations.
 
-## Model: Investment
+## Models
 
-- `name` (CharField), `amount` (Decimal), `date` (DateField), `platform` (optional CharField)
-- `account` FK — the account the money was invested from
-- `notes` (optional text), `created_at`
-- Ordered by `-date`
+### Instrument
+- `name`, `ticker` (unique), `instrument_type` (psx_stock/pk_mutual_fund/us_stock/crypto/international_fund), `currency` (PKR/USD), `platform`, `notes`, `is_active`, `created_at`
+- Properties: `latest_price`, `current_holdings`, `average_cost`, `current_value`, `unrealized_gain_loss`, `realized_gain_loss`
+
+### InstrumentPrice
+- `instrument` FK, `date`, `price`, `created_at`
+- Unique together: (instrument, date). `get_price(instrument, date)` uses last-known-price logic.
+
+### InvestmentTransaction
+- `date`, `instrument` FK, `transaction_type` (buy/sell), `units`, `price_per_unit`, `total_amount`, `brokerage_fee`, `tax`, `account` FK, `notes`, `created_at`
+- `net_amount` property: buy deducts (total + fees + tax), sell credits (total - fees - tax)
+
+### ExchangeRate
+- `from_currency`, `to_currency`, `date`, `rate`, `created_at`
+- Unique together: (from_currency, to_currency, date). `get_rate()` uses last-known-rate logic.
 
 ## Signals (signals.py)
 
-Balance recalculation on investment changes (same pattern as `loans/signals.py`):
+Balance recalculation on InvestmentTransaction changes (same pattern as loans/transactions):
 - `pre_save` captures old account ID
 - `post_save` recalculates affected accounts (current + old)
-- `post_delete` recalculates the investment's account
+- `post_delete` recalculates the transaction's account
 
-Signals are imported in `apps.py` → `ready()`.
+## Balance Impact
 
-## Forms
-
-- `InvestmentForm` (ModelForm) — name, amount, date, platform, account, notes
+- **Buy**: deducts `total_amount + brokerage_fee + tax` from account
+- **Sell**: credits `total_amount - brokerage_fee - tax` to account
+- Formula: `... - investment_buys + investment_sells`
 
 ## Views
 
-- `InvestmentListView` — all investments with total invested summary
-- `InvestmentCreateView` — standard create form (purple accent)
-- `InvestmentDetailView` — investment info card with grid layout
+- `PortfolioDashboardView` — summary cards, allocation donut chart, performance line chart, holdings table
+- `InstrumentListView/CreateView/UpdateView/DetailView` — instrument CRUD
+- `InvestmentTransactionListView/CreateView` — filterable transaction list and add form
+- `BulkPriceEntryView` — update prices for all active instruments at once
+- `PriceHistoryView` — filterable price history
+- `ExchangeRateListView` — list + inline add form
 
 ## URLs (namespace: `investments`)
 
-- `investments:list` → `/investments/`
-- `investments:create` → `/investments/add/`
-- `investments:detail` → `/investments/<pk>/`
+- `investments:list` → `/investments/` (portfolio dashboard)
+- `investments:instrument_list/create/detail/edit` → `/investments/instruments/...`
+- `investments:transaction_list/create` → `/investments/transactions/...`
+- `investments:bulk_prices` → `/investments/prices/`
+- `investments:price_history` → `/investments/prices/history/`
+- `investments:exchange_rates` → `/investments/exchange-rates/`
 
 ## Notes
 
-- Investments reduce account balance (subtracted in `recalculate_balance()`).
-- Balance formula: `income - expenses - transfers_out + transfers_in - loans_out - investments_out`
-- Uses purple accent color to distinguish from other sections.
-- Templates are in `investments/templates/investments/`.
+- Uses purple accent color throughout.
+- Chart.js loaded only on dashboard and instrument detail templates via `{% block extra_js %}`.
+- All templates include dark mode classes.

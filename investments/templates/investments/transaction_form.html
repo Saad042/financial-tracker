@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}New Investment Transaction - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">New Investment Transaction</h1>
+
+    <form method="post" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        {% csrf_token %}
+
+        {% for field in form %}
+        <div>
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ field.errors.0 }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Auto-calculated total display -->
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Estimated Total: <span id="calc-total" class="font-semibold text-gray-900 dark:text-gray-100">0.00</span></p>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="text-sm text-red-600 dark:text-red-400">
+            {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="flex items-center space-x-3 pt-2">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                Record Transaction
+            </button>
+            <a href="{% url 'investments:transaction_list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var unitsField = document.getElementById('id_units');
+    var priceField = document.getElementById('id_price_per_unit');
+    var totalSpan = document.getElementById('calc-total');
+
+    function updateTotal() {
+        var units = parseFloat(unitsField.value) || 0;
+        var price = parseFloat(priceField.value) || 0;
+        totalSpan.textContent = (units * price).toFixed(2);
+    }
+
+    if (unitsField && priceField) {
+        unitsField.addEventListener('input', updateTotal);
+        priceField.addEventListener('input', updateTotal);
+        updateTotal();
+    }
+})();
+</script>
+{% endblock %}

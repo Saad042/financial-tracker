@@ -6,7 +6,12 @@ from django.core.management.base import BaseCommand
 
 from accounts.models import Account
 from budgets.models import Budget
-from investments.models import Investment
+from investments.models import (
+    ExchangeRate,
+    Instrument,
+    InstrumentPrice,
+    InvestmentTransaction,
+)
 from loans.models import Loan, LoanRepayment
 from recurring.models import RecurringRule
 from tags.models import LoanTag, Tag, TransactionTag
@@ -82,10 +87,29 @@ class Command(BaseCommand):
                     "id", "category_id", "month", "amount",
                 )
             ),
-            "investments": list(
-                Investment.objects.values(
-                    "id", "name", "amount", "date", "platform",
-                    "account_id", "notes", "created_at",
+            "instruments": list(
+                Instrument.objects.values(
+                    "id", "name", "ticker", "instrument_type", "currency",
+                    "platform", "notes", "is_active", "created_at",
+                )
+            ),
+            "instrument_prices": list(
+                InstrumentPrice.objects.values(
+                    "id", "instrument_id", "date", "price", "created_at",
+                )
+            ),
+            "investment_transactions": list(
+                InvestmentTransaction.objects.values(
+                    "id", "date", "instrument_id", "transaction_type",
+                    "units", "price_per_unit", "total_amount",
+                    "brokerage_fee", "tax", "account_id", "notes",
+                    "created_at",
+                )
+            ),
+            "exchange_rates": list(
+                ExchangeRate.objects.values(
+                    "id", "from_currency", "to_currency", "date",
+                    "rate", "created_at",
                 )
             ),
             "tags": list(

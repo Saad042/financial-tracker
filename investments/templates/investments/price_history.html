@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Price History - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Price History</h1>
+    <a href="{% url 'investments:bulk_prices' %}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Update Prices</a>
+</div>
+
+<!-- Filter -->
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <form method="get" class="flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Instrument</label>
+            <select name="instrument" class="rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                <option value="">All</option>
+                {% for inst in instruments %}
+                <option value="{{ inst.pk }}" {% if selected_instrument == inst.pk|stringformat:"d" %}selected{% endif %}>{{ inst.ticker }} - {{ inst.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">Filter</button>
+    </form>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    {% if prices %}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Instrument</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Price</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for p in prices %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-3 text-sm text-gray-900 dark:text-gray-100">{{ p.date }}</td>
+                    <td class="px-6 py-3 text-sm">
+                        <a href="{% url 'investments:instrument_detail' p.instrument.pk %}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">{{ p.instrument.ticker }}</a>
+                        <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">{{ p.instrument.currency }}</span>
+                    </td>
+                    <td class="px-6 py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100">{{ p.price|floatformat:4 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </div>
+        <div class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if selected_instrument %}&instrument={{ selected_instrument }}{% endif %}" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">&larr; Previous</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if selected_instrument %}&instrument={{ selected_instrument }}{% endif %}" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">Next &rarr;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No prices recorded yet.</p>
+    {% endif %}
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'investments:list' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">&larr; Back to Portfolio</a>
+</div>
+{% endblock %}

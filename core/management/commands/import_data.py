@@ -8,7 +8,12 @@ from django.db.models.signals import post_delete, post_save, pre_save
 
 from accounts.models import Account
 from budgets.models import Budget
-from investments.models import Investment
+from investments.models import (
+    ExchangeRate,
+    Instrument,
+    InstrumentPrice,
+    InvestmentTransaction,
+)
 from loans.models import Loan, LoanRepayment
 from recurring.models import RecurringRule
 from tags.models import LoanTag, Tag, TransactionTag
@@ -24,7 +29,7 @@ def _parse_value(value, field_name):
     """Parse JSON values back to Python types based on field name patterns."""
     if value is None:
         return None
-    if field_name in ("amount", "balance"):
+    if field_name in ("amount", "balance", "units", "price_per_unit", "total_amount", "brokerage_fee", "tax", "rate", "price", "initial_balance"):
         return Decimal(value)
     if field_name in ("date", "date_lent", "expected_return", "date_repaid", "month"):
         if isinstance(value, str):
@@ -64,7 +69,7 @@ class Command(BaseCommand):
         # Show summary
         self.stdout.write(f"Import file: {file_path}")
         self.stdout.write(f"Exported at: {data['meta'].get('exported_at', 'unknown')}")
-        for key in ("accounts", "categories", "transactions", "loans", "loan_repayments", "recurring_rules", "budgets", "investments", "tags", "transaction_tags", "loan_tags"):
+        for key in ("accounts", "categories", "transactions", "loans", "loan_repayments", "recurring_rules", "budgets", "instruments", "instrument_prices", "investment_transactions", "exchange_rates", "tags", "transaction_tags", "loan_tags"):
             count = len(data.get(key, []))
             self.stdout.write(f"  {key}: {count} records")
 
@@ -87,11 +92,11 @@ class Command(BaseCommand):
         post_save.disconnect(loan_signals.update_balances_on_loan_save, sender=Loan)
         post_delete.disconnect(loan_signals.update_balances_on_loan_delete, sender=Loan)
 
-        # Disconnect investment signals
+        # Disconnect investment transaction signals
         from investments import signals as investment_signals
-        pre_save.disconnect(investment_signals.capture_old_investment, sender=Investment)
-        post_save.disconnect(investment_signals.update_balances_on_investment_save, sender=Investment)
-        post_delete.disconnect(investment_signals.update_balances_on_investment_delete, sender=Investment)
+        pre_save.disconnect(investment_signals.capture_old_investment_transaction, sender=InvestmentTransaction)
+        post_save.disconnect(investment_signals.update_balances_on_investment_transaction_save, sender=InvestmentTransaction)
+        post_delete.disconnect(investment_signals.update_balances_on_investment_transaction_delete, sender=InvestmentTransaction)
 
         try:
             with db_transaction.atomic():
@@ -100,7 +105,10 @@ class Command(BaseCommand):
                 LoanTag.objects.all().delete()
                 LoanRepayment.objects.all().delete()
                 Budget.objects.all().delete()
-                Investment.objects.all().delete()
+                InvestmentTransaction.objects.all().delete()
+                InstrumentPrice.objects.all().delete()
+                ExchangeRate.objects.all().delete()
+                Instrument.objects.all().delete()
                 Transaction.objects.all().delete()
                 RecurringRule.objects.all().delete()
                 Loan.objects.all().delete()
@@ -117,7 +125,10 @@ class Command(BaseCommand):
                 self._bulk_create(Loan, data.get("loans", []))
                 self._bulk_create(LoanRepayment, data.get("loan_repayments", []))
                 self._bulk_create(Budget, data.get("budgets", []))
-                self._bulk_create(Investment, data.get("investments", []))
+                self._bulk_create(Instrument, data.get("instruments", []))
+                self._bulk_create(InstrumentPrice, data.get("instrument_prices", []))
+                self._bulk_create(ExchangeRate, data.get("exchange_rates", []))
+                self._bulk_create(InvestmentTransaction, data.get("investment_transactions", []))
                 self._bulk_create(TransactionTag, data.get("transaction_tags", []))
                 self._bulk_create(LoanTag, data.get("loan_tags", []))
 
@@ -135,9 +146,9 @@ class Command(BaseCommand):
             post_save.connect(loan_signals.update_balances_on_loan_save, sender=Loan)
             post_delete.connect(loan_signals.update_balances_on_loan_delete, sender=Loan)
 
-            pre_save.connect(investment_signals.capture_old_investment, sender=Investment)
-            post_save.connect(investment_signals.update_balances_on_investment_save, sender=Investment)
-            post_delete.connect(investment_signals.update_balances_on_investment_delete, sender=Investment)
+            pre_save.connect(investment_signals.capture_old_investment_transaction, sender=InvestmentTransaction)
+            post_save.connect(investment_signals.update_balances_on_investment_transaction_save, sender=InvestmentTransaction)
+            post_delete.connect(investment_signals.update_balances_on_investment_transaction_delete, sender=InvestmentTransaction)
 
         self.stdout.write(self.style.SUCCESS("Import completed successfully."))
 

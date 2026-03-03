@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Instruments - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Instruments</h1>
+    <a href="{% url 'investments:instrument_create' %}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">+ Add Instrument</a>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    {% if instruments %}
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[600px]">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ticker</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Currency</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Platform</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for inst in instruments %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-3 text-sm">
+                        <a href="{% url 'investments:instrument_detail' inst.pk %}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">{{ inst.ticker }}</a>
+                    </td>
+                    <td class="px-6 py-3 text-sm text-gray-900 dark:text-gray-100">{{ inst.name }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{{ inst.get_instrument_type_display }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{{ inst.currency }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{{ inst.platform|default:"—" }}</td>
+                    <td class="px-6 py-3 text-sm text-center">
+                        {% if inst.is_active %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">Active</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-sm text-right">
+                        <a href="{% url 'investments:instrument_edit' inst.pk %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No instruments yet. <a href="{% url 'investments:instrument_create' %}" class="text-purple-600 dark:text-purple-400 hover:underline">Add one</a> to get started.</p>
+    {% endif %}
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'investments:list' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">&larr; Back to Portfolio</a>
+</div>
+{% endblock %}

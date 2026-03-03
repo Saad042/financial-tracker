@@ -95,15 +95,15 @@
         {% endif %}
 
         <!-- Investments -->
-        {% if investments_count %}
+        {% if has_investments %}
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Investments</h2>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Portfolio</h2>
                 <a href="{% url 'investments:list' %}" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">View All</a>
             </div>
             <div class="flex items-center justify-between">
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ investments_count }} investment{{ investments_count|pluralize }}</p>
-                <p class="text-lg font-bold text-purple-600 dark:text-purple-400">{{ total_invested|pkr }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Portfolio Value</p>
+                <p class="text-lg font-bold text-purple-600 dark:text-purple-400">{{ portfolio_value|pkr }}</p>
             </div>
         </div>
         {% endif %}

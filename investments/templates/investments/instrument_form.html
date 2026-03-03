@@ -1,18 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}New Investment - Expense Tracker{% endblock %}
+{% block title %}{% if object %}Edit {{ object.ticker }}{% else %}Add Instrument{% endif %} - Expense Tracker{% endblock %}
 
 {% block content %}
 <div class="max-w-lg mx-auto">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">New Investment</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{% if object %}Edit {{ object.ticker }}{% else %}Add Instrument{% endif %}</h1>
 
     <form method="post" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         {% csrf_token %}
 
         {% for field in form %}
-        <div>
+        <div{% if field.name == "is_active" %} class="flex items-center space-x-2"{% endif %}>
+            {% if field.name == "is_active" %}
+            {{ field }}
+            <label for="{{ field.id_for_label }}" class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ field.label }}</label>
+            {% else %}
             <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ field.label }}</label>
             {{ field }}
+            {% endif %}
             {% if field.errors %}
             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ field.errors.0 }}</p>
             {% endif %}
@@ -29,9 +34,9 @@
 
         <div class="flex items-center space-x-3 pt-2">
             <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-                Record Investment
+                {% if object %}Update Instrument{% else %}Add Instrument{% endif %}
             </button>
-            <a href="{% url 'investments:list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Cancel</a>
+            <a href="{% url 'investments:instrument_list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Cancel</a>
         </div>
     </form>
 </div>

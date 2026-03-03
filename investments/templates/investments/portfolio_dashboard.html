@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Portfolio - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Investment Portfolio</h1>
+    <div class="flex items-center space-x-2">
+        <a href="{% url 'investments:bulk_prices' %}" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Update Prices</a>
+        <a href="{% url 'investments:transaction_create' %}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">+ New Transaction</a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Portfolio Value</p>
+        <p class="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{{ total_value_pkr|pkr }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Invested</p>
+        <p class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{{ total_cost_pkr|pkr }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Gain / Loss</p>
+        <p class="text-xl font-bold mt-1 {% if total_gain_loss >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+            {{ total_gain_loss|pkr }}
+            <span class="text-sm font-normal">({{ total_gain_loss_pct|floatformat:1 }}%)</span>
+        </p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Realized Gains</p>
+        <p class="text-xl font-bold mt-1 {% if total_realized_pkr >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ total_realized_pkr|pkr }}</p>
+    </div>
+</div>
+
+<!-- Currency Split -->
+{% if pkr_exposure or usd_exposure %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400">PKR Exposure</p>
+        <p class="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">{{ pkr_exposure|pkr }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400">USD Exposure (in PKR)</p>
+        <p class="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">{{ usd_exposure|pkr }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Allocation Donut -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Allocation by Type</h2>
+        <div class="relative" style="height: 280px;">
+            <canvas id="allocationChart"></canvas>
+        </div>
+    </div>
+    <!-- Performance Line -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Portfolio Value (30 Days)</h2>
+        <div class="relative" style="height: 280px;">
+            <canvas id="performanceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Holdings Table -->
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Holdings</h2>
+        <a href="{% url 'investments:instrument_list' %}" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">Manage Instruments</a>
+    </div>
+    {% if holdings %}
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Instrument</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Units</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg Cost</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Price</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Value</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Gain/Loss</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">%</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for h in holdings %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-3 text-sm">
+                        <a href="{% url 'investments:instrument_detail' h.instrument.pk %}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">{{ h.instrument.ticker }}</a>
+                        <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">{{ h.instrument.get_instrument_type_display }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ h.units|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-400">{{ h.avg_cost|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ h.current_price|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100">{{ h.current_value|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium {% if h.gain_loss >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ h.gain_loss|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right {% if h.gain_loss_pct >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ h.gain_loss_pct|floatformat:1 }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No active holdings. <a href="{% url 'investments:transaction_create' %}" class="text-purple-600 dark:text-purple-400 hover:underline">Record a transaction</a> to get started.</p>
+    {% endif %}
+</div>
+
+<!-- Quick Links -->
+<div class="mt-6 flex flex-wrap gap-3">
+    <a href="{% url 'investments:transaction_list' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline">All Transactions</a>
+    <a href="{% url 'investments:price_history' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline">Price History</a>
+    <a href="{% url 'investments:exchange_rates' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline">Exchange Rates</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+(function() {
+    var isDark = document.documentElement.classList.contains('dark');
+    var textColor = isDark ? '#d1d5db' : '#374151';
+    var gridColor = isDark ? '#374151' : '#e5e7eb';
+
+    // Allocation Donut
+    var allocLabels = {{ allocation_labels|safe }};
+    var allocValues = {{ allocation_values|safe }};
+    if (allocLabels.length > 0) {
+        var donutColors = ['#8b5cf6', '#6366f1', '#a78bfa', '#c4b5fd', '#7c3aed', '#4f46e5'];
+        new Chart(document.getElementById('allocationChart'), {
+            type: 'doughnut',
+            data: {
+                labels: allocLabels,
+                datasets: [{
+                    data: allocValues,
+                    backgroundColor: donutColors.slice(0, allocLabels.length),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: textColor, padding: 12 }
+                    }
+                }
+            }
+        });
+    }
+
+    // Performance Line
+    var perfDates = {{ performance_dates|safe }};
+    var perfValues = {{ performance_values|safe }};
+    if (perfDates.length > 0) {
+        new Chart(document.getElementById('performanceChart'), {
+            type: 'line',
+            data: {
+                labels: perfDates,
+                datasets: [{
+                    label: 'Portfolio Value (PKR)',
+                    data: perfValues,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: isDark ? 'rgba(139,92,246,0.1)' : 'rgba(139,92,246,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: { color: textColor, maxTicksLimit: 7 },
+                        grid: { color: gridColor }
+                    },
+                    y: {
+                        ticks: { color: textColor },
+                        grid: { color: gridColor }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

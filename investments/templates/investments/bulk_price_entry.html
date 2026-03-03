@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Update Prices - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Update Prices</h1>
+        <a href="{% url 'investments:price_history' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">View History</a>
+    </div>
+
+    <form method="post" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        {% csrf_token %}
+
+        <!-- Date Picker -->
+        <div class="mb-6">
+            <label for="price_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+            <div class="flex items-center space-x-2">
+                <input type="date" name="price_date" id="price_date" value="{{ selected_date }}"
+                       class="rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                <button type="button" onclick="updateDateFilter()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Load</button>
+            </div>
+        </div>
+
+        {% if instrument_data %}
+        <div class="space-y-3">
+            {% for item in instrument_data %}
+            <div class="flex items-center justify-between gap-4 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ item.instrument.ticker }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.instrument.name }} &middot; {{ item.instrument.currency }}</p>
+                </div>
+                <div class="w-36">
+                    <input type="number"
+                           name="price_{{ item.instrument.pk }}"
+                           value="{{ item.existing_price }}"
+                           placeholder="{{ item.placeholder|default:'No previous price' }}"
+                           step="0.0001"
+                           min="0"
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm text-right">
+                </div>
+                {% if item.existing_price %}
+                <span class="text-xs text-green-600 dark:text-green-400 w-8 text-center" title="Price already set">&#10003;</span>
+                {% else %}
+                <span class="text-xs text-amber-500 dark:text-amber-400 w-8 text-center" title="Missing price">&#9679;</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-6 flex items-center space-x-3">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                Save Prices
+            </button>
+            <a href="{% url 'investments:list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Cancel</a>
+        </div>
+        {% else %}
+        <p class="text-center text-gray-500 dark:text-gray-400 py-8">No active instruments. <a href="{% url 'investments:instrument_create' %}" class="text-purple-600 dark:text-purple-400 hover:underline">Add one</a> first.</p>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateDateFilter() {
+    var date = document.getElementById('price_date').value;
+    window.location.href = '{% url "investments:bulk_prices" %}?date=' + date;
+}
+</script>
+{% endblock %}

@@ -10,7 +10,8 @@ Shared utilities, the main dashboard, and data export/import commands. Has no mo
 - `month_income`, `month_expenses`, `month_net` — current month aggregates
 - `recent_transactions` — last 15 transactions with related objects
 - `loans_active_count`, `loans_total_lent`, `loans_total_repaid`, `loans_total_remaining`, `loans_overdue_count` — active loan summary
-- `total_invested`, `investments_count` — total investment amount and count
+- `portfolio_value` — total portfolio value in PKR (computed from active instruments × latest prices, USD converted via ExchangeRate)
+- `has_investments` — boolean, true if any InvestmentTransaction exists
 - `budget_alerts` — list of budgets at warning (>=80%) or exceeded (>=100%) status for the current month
 
 Template: `templates/core/dashboard.html`
@@ -25,7 +26,7 @@ Usage: `{% load currency %}` then `{{ amount|pkr }}`
 
 ### `export_data`
 
-Exports all app data (accounts, categories, transactions, loans, loan_repayments, recurring_rules, budgets, investments, tags, transaction_tags, loan_tags) to a JSON file with a `meta` block containing app version and timestamp. Custom `DecimalDateEncoder` handles Decimal and date serialization.
+Exports all app data (accounts, categories, transactions, loans, loan_repayments, recurring_rules, budgets, instruments, instrument_prices, investment_transactions, exchange_rates, tags, transaction_tags, loan_tags) to a JSON file with a `meta` block containing app version and timestamp. Custom `DecimalDateEncoder` handles Decimal and date serialization.
 
 ```bash
 uv run python manage.py export_data                        # default: expense_tracker_export.json
@@ -34,7 +35,7 @@ uv run python manage.py export_data --output backup.json   # custom path
 
 ### `import_data`
 
-Full-replace import inside `atomic()`. Deletes all data in reverse dependency order (including TransactionTag, LoanTag, Tag), then bulk-creates from JSON in dependency order. Disconnects transaction, loan, and investment signals during import to avoid per-row balance recalculation, then calls `recalculate_balance()` on all accounts once at the end. Backward compatible — uses `data.get()` for tag keys so older export files without tags still import cleanly.
+Full-replace import inside `atomic()`. Deletes all data in reverse dependency order (including InvestmentTransaction, InstrumentPrice, ExchangeRate, Instrument, TransactionTag, LoanTag, Tag), then bulk-creates from JSON in dependency order. Disconnects transaction, loan, and investment transaction signals during import to avoid per-row balance recalculation, then calls `recalculate_balance()` on all accounts once at the end. Backward compatible — uses `data.get()` for new keys so older export files still import cleanly.
 
 ```bash
 uv run python manage.py import_data expense_tracker_export.json        # interactive prompt

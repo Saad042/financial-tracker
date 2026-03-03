@@ -7,7 +7,12 @@ from django.views.generic import TemplateView
 
 from accounts.models import Account
 from budgets.models import Budget
-from investments.models import Investment
+from investments.models import (
+    ExchangeRate,
+    Instrument,
+    InstrumentPrice,
+    InvestmentTransaction,
+)
 from loans.models import Loan, LoanRepayment
 from transactions.models import Transaction
 
@@ -80,12 +85,22 @@ class DashboardView(TemplateView):
             expected_return__lt=today
         ).count()
 
-        # Total invested
-        context["total_invested"] = (
-            Investment.objects.aggregate(total=Sum("amount"))["total"]
-            or Decimal("0.00")
-        )
-        context["investments_count"] = Investment.objects.count()
+        # Portfolio summary
+        portfolio_value = Decimal("0.00")
+        for inst in Instrument.objects.filter(is_active=True):
+            holdings = inst.current_holdings
+            if holdings <= 0:
+                continue
+            price = inst.latest_price
+            if price is None:
+                continue
+            value = holdings * price
+            if inst.currency == Instrument.USD:
+                rate = ExchangeRate.get_rate("USD", "PKR", today) or Decimal("1")
+                value = value * rate
+            portfolio_value += value
+        context["portfolio_value"] = portfolio_value
+        context["has_investments"] = InvestmentTransaction.objects.exists()
 
         # Budget alerts (warning or exceeded for current month)
         current_month = month_start
