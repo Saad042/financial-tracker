@@ -4,32 +4,32 @@
 {% block title %}Dashboard - Expense Tracker{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+<h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Dashboard</h1>
 
 <!-- Summary Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <!-- Total Balance -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <p class="text-sm font-medium text-gray-500 mb-1">Total Balance</p>
-        <p class="text-2xl font-bold {% if total_balance >= 0 %}text-gray-900{% else %}text-red-600{% endif %}">{{ total_balance|pkr }}</p>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Balance</p>
+        <p class="text-2xl font-bold {% if total_balance >= 0 %}text-gray-900 dark:text-gray-100{% else %}text-red-600 dark:text-red-400{% endif %}">{{ total_balance|pkr }}</p>
     </div>
 
     <!-- Monthly Income -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <p class="text-sm font-medium text-gray-500 mb-1">Income (This Month)</p>
-        <p class="text-2xl font-bold text-green-600">{{ month_income|pkr }}</p>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Income (This Month)</p>
+        <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ month_income|pkr }}</p>
     </div>
 
     <!-- Monthly Expenses -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <p class="text-sm font-medium text-gray-500 mb-1">Expenses (This Month)</p>
-        <p class="text-2xl font-bold text-red-600">{{ month_expenses|pkr }}</p>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Expenses (This Month)</p>
+        <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ month_expenses|pkr }}</p>
     </div>
 
     <!-- Net -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <p class="text-sm font-medium text-gray-500 mb-1">Net (This Month)</p>
-        <p class="text-2xl font-bold {% if month_net >= 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ month_net|pkr }}</p>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Net (This Month)</p>
+        <p class="text-2xl font-bold {% if month_net >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ month_net|pkr }}</p>
     </div>
 </div>
 
@@ -38,76 +38,76 @@
     <!-- Left Column: Accounts + Loans + Budget Alerts -->
     <div class="lg:col-span-1 space-y-6">
         <!-- Accounts -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Accounts</h2>
-                <a href="{% url 'accounts:create' %}" class="text-sm text-emerald-600 hover:text-emerald-700">+ Add</a>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Accounts</h2>
+                <a href="{% url 'accounts:create' %}" class="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">+ Add</a>
             </div>
             {% if accounts %}
             <div class="space-y-3">
                 {% for account in accounts %}
-                <a href="{% url 'accounts:detail' account.pk %}" class="flex items-center justify-between hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors">
+                <a href="{% url 'accounts:detail' account.pk %}" class="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg p-2 -mx-2 transition-colors">
                     <div>
-                        <p class="text-sm font-medium text-gray-900">{{ account.name }}</p>
-                        <p class="text-xs text-gray-500">{{ account.get_account_type_display }}</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ account.name }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ account.get_account_type_display }}</p>
                     </div>
-                    <p class="text-sm font-semibold {% if account.balance >= 0 %}text-gray-900{% else %}text-red-600{% endif %}">{{ account.balance|pkr }}</p>
+                    <p class="text-sm font-semibold {% if account.balance >= 0 %}text-gray-900 dark:text-gray-100{% else %}text-red-600 dark:text-red-400{% endif %}">{{ account.balance|pkr }}</p>
                 </a>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-sm text-gray-500">No accounts yet.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">No accounts yet.</p>
             {% endif %}
         </div>
 
         <!-- Outstanding Loans -->
         {% if outstanding_loans_count %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Outstanding Loans</h2>
-                <a href="{% url 'loans:list' %}" class="text-sm text-emerald-600 hover:text-emerald-700">View All</a>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Outstanding Loans</h2>
+                <a href="{% url 'loans:list' %}" class="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">View All</a>
             </div>
             <div class="flex items-center justify-between">
-                <p class="text-sm text-gray-500">{{ outstanding_loans_count }} loan{{ outstanding_loans_count|pluralize }}</p>
-                <p class="text-lg font-bold text-amber-600">{{ outstanding_loans_total|pkr }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ outstanding_loans_count }} loan{{ outstanding_loans_count|pluralize }}</p>
+                <p class="text-lg font-bold text-amber-600 dark:text-amber-400">{{ outstanding_loans_total|pkr }}</p>
             </div>
         </div>
         {% endif %}
 
         <!-- Investments -->
         {% if investments_count %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Investments</h2>
-                <a href="{% url 'investments:list' %}" class="text-sm text-purple-600 hover:text-purple-700">View All</a>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Investments</h2>
+                <a href="{% url 'investments:list' %}" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">View All</a>
             </div>
             <div class="flex items-center justify-between">
-                <p class="text-sm text-gray-500">{{ investments_count }} investment{{ investments_count|pluralize }}</p>
-                <p class="text-lg font-bold text-purple-600">{{ total_invested|pkr }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ investments_count }} investment{{ investments_count|pluralize }}</p>
+                <p class="text-lg font-bold text-purple-600 dark:text-purple-400">{{ total_invested|pkr }}</p>
             </div>
         </div>
         {% endif %}
 
         <!-- Budget Alerts -->
         {% if budget_alerts %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Budget Alerts</h2>
-                <a href="{% url 'budgets:overview' %}" class="text-sm text-emerald-600 hover:text-emerald-700">View All</a>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Budget Alerts</h2>
+                <a href="{% url 'budgets:overview' %}" class="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">View All</a>
             </div>
             <div class="space-y-3">
                 {% for budget in budget_alerts %}
                 <div>
                     <div class="flex items-center justify-between mb-1">
-                        <p class="text-sm font-medium text-gray-900">{{ budget.category.name }}</p>
-                        <span class="text-xs font-medium px-2 py-0.5 rounded-full {% if budget.status == 'exceeded' %}bg-red-100 text-red-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ budget.category.name }}</p>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded-full {% if budget.status == 'exceeded' %}bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300{% else %}bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300{% endif %}">
                             {{ budget.percent_used }}%
                         </span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div class="h-2 rounded-full {% if budget.status == 'exceeded' %}bg-red-500{% else %}bg-amber-500{% endif %}" style="width: {{ budget.percent_used }}%"></div>
                     </div>
-                    <p class="text-xs text-gray-400 mt-0.5">{{ budget.spent|pkr }} / {{ budget.amount|pkr }}</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ budget.spent|pkr }} / {{ budget.amount|pkr }}</p>
                 </div>
                 {% endfor %}
             </div>
@@ -117,36 +117,36 @@
 
     <!-- Recent Transactions -->
     <div class="lg:col-span-2">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-                <a href="{% url 'transactions:list' %}" class="text-sm text-emerald-600 hover:text-emerald-700">View All</a>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Recent Transactions</h2>
+                <a href="{% url 'transactions:list' %}" class="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">View All</a>
             </div>
             {% if recent_transactions %}
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-gray-100 dark:divide-gray-700">
                 {% for txn in recent_transactions %}
                 <div class="flex items-center justify-between px-5 py-3">
                     <div class="flex items-center space-x-3">
                         <span class="w-2 h-2 rounded-full {% if txn.type == 'income' %}bg-green-500{% elif txn.type == 'expense' %}bg-red-500{% else %}bg-blue-500{% endif %}"></span>
                         <div>
-                            <p class="text-sm text-gray-900">
+                            <p class="text-sm text-gray-900 dark:text-gray-100">
                                 {% if txn.type == "transfer" %}
                                     Transfer: {{ txn.account.name }} &rarr; {{ txn.transfer_to.name }}
                                 {% else %}
                                     {{ txn.description|default:txn.category|default:txn.get_type_display }}
                                 {% endif %}
                             </p>
-                            <p class="text-xs text-gray-500">{{ txn.date }} &middot; {{ txn.account.name }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ txn.date }} &middot; {{ txn.account.name }}</p>
                         </div>
                     </div>
-                    <p class="text-sm font-medium {% if txn.type == 'income' %}text-green-600{% elif txn.type == 'expense' %}text-red-600{% else %}text-blue-600{% endif %}">
+                    <p class="text-sm font-medium {% if txn.type == 'income' %}text-green-600 dark:text-green-400{% elif txn.type == 'expense' %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
                         {% if txn.type == "income" %}+{% elif txn.type == "expense" %}-{% endif %}{{ txn.amount|pkr }}
                     </p>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="px-5 py-8 text-center text-gray-500">No transactions yet. Start by adding your first transaction.</p>
+            <p class="px-5 py-8 text-center text-gray-500 dark:text-gray-400">No transactions yet. Start by adding your first transaction.</p>
             {% endif %}
         </div>
     </div>

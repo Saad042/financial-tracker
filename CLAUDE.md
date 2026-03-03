@@ -53,18 +53,19 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - **FK safety:** All foreign keys use `on_delete=PROTECT`, except `Transaction.recurring_rule` which uses `SET_NULL` so deleting a rule orphans its transactions.
 - **HTMX:** Used for dynamic category dropdown filtering by transaction type. Pattern: `hx-get` on the type select triggers a view that returns `<option>` HTML. Reused in recurring rule form. Also used for transaction list filtering — view returns a partial template when `request.htmx` is true.
 - **Transaction filtering:** `_apply_transaction_filters(qs, params)` in `transactions/views.py` is a shared helper reused by the list view and CSV export. Filters: search (description icontains), type, category (parent + children), account, date range, amount range.
-- **Charts:** Chart.js loaded via CDN only on report templates (`{% block extra_js %}`). Not loaded globally.
+- **Charts:** Chart.js loaded via CDN only on report templates (`{% block extra_js %}`). Not loaded globally. Charts use theme-aware colors (text, grid, borders) detected via `document.documentElement.classList.contains('dark')`.
 - **Investments:** Investment model tracks money invested (log only). Deducts from account balance via signals (same pattern as loans). Excluded from spending reports. Uses purple accent color.
+- **Dark mode:** Class-based strategy via `@custom-variant dark` in `theme/static_src/src/styles.css`. Theme preference stored in a `theme` cookie (light/dark/system), read synchronously in `<head>` to prevent flash. Toggle button in nav bar cycles through Light → Dark → System. No Django model needed — pure frontend. All templates use `dark:` Tailwind variants. Form `INPUT_CLASS` constants in each app's `forms.py` include dark variants.
 - **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Import disconnects transaction/loan/investment signals during bulk create, then recalculates all account balances once at the end.
 - **Mobile nav:** Hamburger menu (below `sm` breakpoint) with all nav links + action buttons. Desktop buttons hidden on mobile.
-- **Active nav links:** `request.path` used to highlight current section with `text-emerald-600 font-semibold` in both desktop and mobile menus.
+- **Active nav links:** `request.path` used to highlight current section with `text-emerald-600 font-semibold` (light) / `text-emerald-400` (dark) in both desktop and mobile menus.
 
 ## Conventions
 
 - All templates extend `templates/base.html`
 - App templates live in `<app>/templates/<app>/`; partials in a `partials/` subfolder
 - Use `{% load currency %}` and the `|pkr` filter to format amounts
-- Forms use Tailwind classes applied via widget attrs in the form class
+- Forms use Tailwind classes applied via `INPUT_CLASS` constant in each app's `forms.py` (includes dark mode variants)
 - Views use Django's class-based generic views (ListView, CreateView, etc.)
 - URL namespaces: `accounts:list`, `transactions:create`, `loans:list`, `recurring:list`, `budgets:overview`, `reports:hub`, `investments:list`, etc. Transfer create is a root-level name: `transfer_create`
 
@@ -74,5 +75,6 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - **Phase 2 (Extended):** DONE — loans, recurring transactions, budgets
 - **Phase 3 (Reporting):** DONE — reports app (Chart.js), transaction search/filter, CSV export, JSON export/import
 - **Phase 4 (Polish):** DONE — investments app, mobile hamburger menu, active nav links, responsive grid tweaks
+- **Phase 5 (Dark Mode):** DONE — class-based dark mode, theme toggle, cookie persistence, all templates updated
 
-See `requirements.md` for full spec.
+See `requirements.md` for full spec. See `requirements-v2.md` for v2 feature specs.

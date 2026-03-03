@@ -6,34 +6,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Expense Tracker{% endblock %}</title>
     {% tailwind_css %}
+    <script>
+    (function() {
+        var t = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+        var pref = t ? t[1] : 'system';
+        var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+    })();
+    </script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 
-<body class="bg-gray-50 text-gray-900 min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-8">
-                    <a href="{% url 'dashboard' %}" class="text-xl font-bold text-gray-900">Expense Tracker</a>
+                    <a href="{% url 'dashboard' %}" class="text-xl font-bold text-gray-900 dark:text-gray-100">Expense Tracker</a>
                     <div class="hidden sm:flex space-x-1 lg:space-x-4">
-                        <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Dashboard</a>
-                        <a href="{% url 'accounts:list' %}" class="{% if '/accounts/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Accounts</a>
-                        <a href="{% url 'transactions:list' %}" class="{% if '/transactions/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Transactions</a>
-                        <a href="{% url 'loans:list' %}" class="{% if '/loans/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Loans</a>
-                        <a href="{% url 'recurring:list' %}" class="{% if '/recurring/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Recurring</a>
-                        <a href="{% url 'budgets:overview' %}" class="{% if '/budgets/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Budgets</a>
-                        <a href="{% url 'reports:hub' %}" class="{% if '/reports/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Reports</a>
-                        <a href="{% url 'investments:list' %}" class="{% if '/investments/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Investments</a>
+                        <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Dashboard</a>
+                        <a href="{% url 'accounts:list' %}" class="{% if '/accounts/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Accounts</a>
+                        <a href="{% url 'transactions:list' %}" class="{% if '/transactions/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Transactions</a>
+                        <a href="{% url 'loans:list' %}" class="{% if '/loans/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Loans</a>
+                        <a href="{% url 'recurring:list' %}" class="{% if '/recurring/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Recurring</a>
+                        <a href="{% url 'budgets:overview' %}" class="{% if '/budgets/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Budgets</a>
+                        <a href="{% url 'reports:hub' %}" class="{% if '/reports/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Reports</a>
+                        <a href="{% url 'investments:list' %}" class="{% if '/investments/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Investments</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
+                    <!-- Theme toggle -->
+                    <button id="theme-toggle" class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Toggle theme">
+                        <!-- Sun icon (visible in dark mode) -->
+                        <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <!-- Moon icon (visible in light mode) -->
+                        <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
                     <div class="hidden sm:flex items-center space-x-3">
                         <a href="{% url 'transactions:create' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors whitespace-nowrap">+ Add Transaction</a>
                         <a href="{% url 'transfer_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors whitespace-nowrap">Transfer</a>
                     </div>
                     <!-- Hamburger button (mobile only) -->
-                    <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors" aria-label="Toggle menu">
+                    <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Toggle menu">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
@@ -43,18 +62,18 @@
         </div>
 
         <!-- Mobile menu -->
-        <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-200">
+        <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-200 dark:border-gray-700">
             <div class="px-4 py-3 space-y-1">
-                <a href="{% url 'dashboard' %}" class="block {% if request.path == '/' %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
-                <a href="{% url 'accounts:list' %}" class="block {% if '/accounts/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Accounts</a>
-                <a href="{% url 'transactions:list' %}" class="block {% if '/transactions/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Transactions</a>
-                <a href="{% url 'loans:list' %}" class="block {% if '/loans/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Loans</a>
-                <a href="{% url 'recurring:list' %}" class="block {% if '/recurring/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Recurring</a>
-                <a href="{% url 'budgets:overview' %}" class="block {% if '/budgets/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Budgets</a>
-                <a href="{% url 'reports:hub' %}" class="block {% if '/reports/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Reports</a>
-                <a href="{% url 'investments:list' %}" class="block {% if '/investments/' in request.path %}text-emerald-600 font-semibold{% else %}text-gray-600 hover:text-gray-900{% endif %} px-3 py-2 rounded-md text-sm font-medium">Investments</a>
+                <a href="{% url 'dashboard' %}" class="block {% if request.path == '/' %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                <a href="{% url 'accounts:list' %}" class="block {% if '/accounts/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Accounts</a>
+                <a href="{% url 'transactions:list' %}" class="block {% if '/transactions/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Transactions</a>
+                <a href="{% url 'loans:list' %}" class="block {% if '/loans/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Loans</a>
+                <a href="{% url 'recurring:list' %}" class="block {% if '/recurring/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Recurring</a>
+                <a href="{% url 'budgets:overview' %}" class="block {% if '/budgets/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Budgets</a>
+                <a href="{% url 'reports:hub' %}" class="block {% if '/reports/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Reports</a>
+                <a href="{% url 'investments:list' %}" class="block {% if '/investments/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Investments</a>
             </div>
-            <div class="px-4 pb-3 pt-2 border-t border-gray-100 flex space-x-3">
+            <div class="px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex space-x-3">
                 <a href="{% url 'transactions:create' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">+ Add Transaction</a>
                 <a href="{% url 'transfer_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Transfer</a>
             </div>
@@ -69,6 +88,29 @@
         {% block content %}{% endblock %}
     </main>
 
+    <script>
+    (function() {
+        var btn = document.getElementById('theme-toggle');
+        var states = ['light', 'dark', 'system'];
+        function getPref() {
+            var m = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+            return m ? m[1] : 'system';
+        }
+        function apply(pref) {
+            var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+        }
+        btn.addEventListener('click', function() {
+            var cur = getPref();
+            var next = states[(states.indexOf(cur) + 1) % 3];
+            document.cookie = 'theme=' + next + ';path=/;max-age=31536000;SameSite=Lax';
+            apply(next);
+        });
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+            if (getPref() === 'system') apply('system');
+        });
+    })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Transactions</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Transactions</h1>
     <div class="flex space-x-3">
         <a href="{% url 'transactions:export_csv' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
            class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Export CSV</a>
@@ -16,56 +16,56 @@
 
 <!-- Filters -->
 {% with has_filters=request.GET.urlencode %}
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
     <button type="button" id="filter-toggle"
-            class="w-full flex items-center justify-between px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            class="w-full flex items-center justify-between px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
         <span>Filters{% if has_filters %} (active){% endif %}</span>
         <svg id="filter-arrow" class="w-5 h-5 transition-transform {% if has_filters %}rotate-180{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
     </button>
-    <div id="filter-panel" class="{% if not has_filters %}hidden{% endif %} border-t border-gray-200 px-6 py-4">
+    <div id="filter-panel" class="{% if not has_filters %}hidden{% endif %} border-t border-gray-200 dark:border-gray-700 px-6 py-4">
         <form hx-get="{% url 'transactions:list' %}"
               hx-target="#transaction-results"
               hx-trigger="submit"
               hx-push-url="true">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Search</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Search</label>
                     {{ filter_form.search }}
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
                     {{ filter_form.type }}
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Category</label>
                     {{ filter_form.category }}
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Account</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Account</label>
                     {{ filter_form.account }}
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Date from</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date from</label>
                     {{ filter_form.date_from }}
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Date to</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date to</label>
                     {{ filter_form.date_to }}
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Amount min</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount min</label>
                     {{ filter_form.amount_min }}
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Amount max</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount max</label>
                     {{ filter_form.amount_max }}
                 </div>
             </div>
             <div class="mt-4 flex space-x-3">
                 <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Apply Filters</button>
-                <a href="{% url 'transactions:list' %}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">Clear</a>
+                <a href="{% url 'transactions:list' %}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors">Clear</a>
             </div>
         </form>
     </div>

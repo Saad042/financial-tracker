@@ -21,7 +21,7 @@ Charts, summaries, and data analysis views. No models — reads from transaction
 
 ## Charts
 
-Chart.js v4 loaded via CDN (`{% block extra_js %}`) only on report templates, not globally. Chart data is passed as JSON-serialized context variables using the `|safe` filter.
+Chart.js v4 loaded via CDN (`{% block extra_js %}`) only on report templates, not globally. Chart data is passed as JSON-serialized context variables using the `|safe` filter. Charts use theme-aware colors: `isDark = document.documentElement.classList.contains('dark')` determines tick color, grid color, and border color at render time.
 
 ## Templates
 

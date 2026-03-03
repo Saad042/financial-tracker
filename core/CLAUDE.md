@@ -43,6 +43,6 @@ uv run python manage.py import_data expense_tracker_export.json --yes  # skip co
 
 ## Project-Level Templates (in `templates/`)
 
-- `templates/base.html` — main layout with nav bar (desktop + mobile hamburger menu), active link highlighting, HTMX script, CSRF token, Tailwind CSS
-- `templates/partials/_messages.html` — Django messages display (success/error/warning/info)
-- `templates/core/dashboard.html` — dashboard page
+- `templates/base.html` — main layout with nav bar (desktop + mobile hamburger menu), active link highlighting, HTMX script, CSRF token, Tailwind CSS. Includes dark mode: theme detection script in `<head>` (reads `theme` cookie synchronously), theme toggle button (sun/moon icon cycling Light → Dark → System), cookie-based persistence (1-year expiry). All elements have `dark:` Tailwind variants.
+- `templates/partials/_messages.html` — Django messages display (success/error/warning/info) with dark mode variants
+- `templates/core/dashboard.html` — dashboard page with dark mode variants

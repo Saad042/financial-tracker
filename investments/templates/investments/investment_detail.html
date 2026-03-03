@@ -6,33 +6,33 @@
 {% block content %}
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">{{ investment.name }}</h1>
-        <a href="{% url 'investments:list' %}" class="text-gray-600 hover:text-gray-900 text-sm">Back to Investments</a>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ investment.name }}</h1>
+        <a href="{% url 'investments:list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Back to Investments</a>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <p class="text-sm text-gray-500">Amount</p>
-                <p class="text-lg font-semibold text-purple-700">{{ investment.amount|pkr }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                <p class="text-lg font-semibold text-purple-700 dark:text-purple-400">{{ investment.amount|pkr }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">From Account</p>
-                <p class="text-lg font-semibold text-gray-900">{{ investment.account.name }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">From Account</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ investment.account.name }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">Date</p>
-                <p class="text-sm text-gray-900">{{ investment.date }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Date</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ investment.date }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">Platform</p>
-                <p class="text-sm text-gray-900">{{ investment.platform|default:"Not specified" }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Platform</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ investment.platform|default:"Not specified" }}</p>
             </div>
         </div>
         {% if investment.notes %}
-        <div class="mt-4 pt-4 border-t border-gray-200">
-            <p class="text-sm text-gray-500">Notes</p>
-            <p class="text-sm text-gray-900">{{ investment.notes }}</p>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Notes</p>
+            <p class="text-sm text-gray-900 dark:text-gray-100">{{ investment.notes }}</p>
         </div>
         {% endif %}
     </div>

@@ -5,94 +5,94 @@
 
 {% block content %}
 <div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Reports</h1>
-    <p class="text-sm text-gray-500 mt-1">{{ current_month|date:"F Y" }} overview</p>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Reports</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ current_month|date:"F Y" }} overview</p>
 </div>
 
 <!-- Report Navigation Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <a href="{% url 'reports:monthly' %}" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-emerald-300 hover:shadow-md transition-all">
-        <div class="text-emerald-600 mb-2">
+    <a href="{% url 'reports:monthly' %}" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md transition-all">
+        <div class="text-emerald-600 dark:text-emerald-400 mb-2">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
         </div>
-        <h3 class="font-semibold text-gray-900">Monthly Breakdown</h3>
-        <p class="text-sm text-gray-500 mt-1">Spending by category with month-over-month comparison</p>
+        <h3 class="font-semibold text-gray-900 dark:text-gray-100">Monthly Breakdown</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Spending by category with month-over-month comparison</p>
     </a>
-    <a href="{% url 'reports:trends' %}" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-blue-300 hover:shadow-md transition-all">
-        <div class="text-blue-600 mb-2">
+    <a href="{% url 'reports:trends' %}" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all">
+        <div class="text-blue-600 dark:text-blue-400 mb-2">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
         </div>
-        <h3 class="font-semibold text-gray-900">Income vs Expense Trends</h3>
-        <p class="text-sm text-gray-500 mt-1">Track income and expenses over time</p>
+        <h3 class="font-semibold text-gray-900 dark:text-gray-100">Income vs Expense Trends</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Track income and expenses over time</p>
     </a>
-    <a href="{% url 'transactions:list' %}" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-purple-300 hover:shadow-md transition-all">
-        <div class="text-purple-600 mb-2">
+    <a href="{% url 'transactions:list' %}" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md transition-all">
+        <div class="text-purple-600 dark:text-purple-400 mb-2">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </div>
-        <h3 class="font-semibold text-gray-900">Transaction Search</h3>
-        <p class="text-sm text-gray-500 mt-1">Search and filter all transactions with CSV export</p>
+        <h3 class="font-semibold text-gray-900 dark:text-gray-100">Transaction Search</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Search and filter all transactions with CSV export</p>
     </a>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Top Spending This Month -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Top Spending — {{ current_month|date:"F Y" }}</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Top Spending — {{ current_month|date:"F Y" }}</h2>
         {% if top_spending %}
         <div class="space-y-3">
             {% for cat in top_spending %}
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
-                    <span class="text-sm font-medium text-gray-600 w-5">{{ forloop.counter }}.</span>
-                    <span class="text-sm text-gray-900">{{ cat.name }}</span>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400 w-5">{{ forloop.counter }}.</span>
+                    <span class="text-sm text-gray-900 dark:text-gray-100">{{ cat.name }}</span>
                 </div>
-                <span class="text-sm font-medium text-red-600">{{ cat.total|pkr }}</span>
+                <span class="text-sm font-medium text-red-600 dark:text-red-400">{{ cat.total|pkr }}</span>
             </div>
             {% endfor %}
         </div>
-        <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between">
-            <span class="text-sm font-medium text-gray-700">Total</span>
-            <span class="text-sm font-bold text-gray-900">{{ month_total_spending|pkr }}</span>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total</span>
+            <span class="text-sm font-bold text-gray-900 dark:text-gray-100">{{ month_total_spending|pkr }}</span>
         </div>
         {% else %}
-        <p class="text-sm text-gray-500">No expenses recorded this month.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">No expenses recorded this month.</p>
         {% endif %}
     </div>
 
     <!-- Loan Summary -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Loan Summary</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Loan Summary</h2>
         <div class="grid grid-cols-2 gap-4 mb-4">
-            <div class="bg-gray-50 rounded-lg p-3">
-                <div class="text-xs text-gray-500">Total Lent</div>
-                <div class="text-lg font-semibold text-gray-900">{{ total_lent|pkr }}</div>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Total Lent</div>
+                <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ total_lent|pkr }}</div>
             </div>
-            <div class="bg-orange-50 rounded-lg p-3">
-                <div class="text-xs text-gray-500">Outstanding</div>
-                <div class="text-lg font-semibold text-orange-600">{{ outstanding_amount|pkr }}</div>
+            <div class="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Outstanding</div>
+                <div class="text-lg font-semibold text-orange-600 dark:text-orange-400">{{ outstanding_amount|pkr }}</div>
             </div>
-            <div class="bg-yellow-50 rounded-lg p-3">
-                <div class="text-xs text-gray-500">Outstanding Count</div>
-                <div class="text-lg font-semibold text-yellow-700">{{ outstanding_count }}</div>
+            <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Outstanding Count</div>
+                <div class="text-lg font-semibold text-yellow-700 dark:text-yellow-400">{{ outstanding_count }}</div>
             </div>
-            <div class="bg-green-50 rounded-lg p-3">
-                <div class="text-xs text-gray-500">Repaid Count</div>
-                <div class="text-lg font-semibold text-green-700">{{ repaid_count }}</div>
+            <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400">Repaid Count</div>
+                <div class="text-lg font-semibold text-green-700 dark:text-green-400">{{ repaid_count }}</div>
             </div>
         </div>
 
         {% if recent_loans %}
-        <h3 class="text-sm font-medium text-gray-700 mb-2">Recent Loans</h3>
+        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recent Loans</h3>
         <div class="space-y-2">
             {% for loan in recent_loans %}
             <div class="flex items-center justify-between text-sm">
                 <div>
-                    <span class="text-gray-900">{{ loan.borrower_name }}</span>
-                    <span class="text-gray-400 ml-1">{{ loan.date_lent }}</span>
+                    <span class="text-gray-900 dark:text-gray-100">{{ loan.borrower_name }}</span>
+                    <span class="text-gray-400 dark:text-gray-500 ml-1">{{ loan.date_lent }}</span>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <span class="font-medium text-gray-900">{{ loan.amount|pkr }}</span>
-                    <span class="text-xs px-2 py-0.5 rounded-full {% if loan.status == 'outstanding' %}bg-yellow-100 text-yellow-700{% else %}bg-green-100 text-green-700{% endif %}">
+                    <span class="font-medium text-gray-900 dark:text-gray-100">{{ loan.amount|pkr }}</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full {% if loan.status == 'outstanding' %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300{% else %}bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300{% endif %}">
                         {{ loan.get_status_display }}
                     </span>
                 </div>
@@ -100,7 +100,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-sm text-gray-500">No loans recorded.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">No loans recorded.</p>
         {% endif %}
     </div>
 </div>

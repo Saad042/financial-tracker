@@ -7,67 +7,67 @@
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Loan to {{ loan.borrower_name }}</h1>
-            <p class="text-sm text-gray-500">
-                <span class="text-xs font-medium px-2 py-1 rounded-full {% if loan.status == 'outstanding' %}bg-amber-100 text-amber-700{% else %}bg-green-100 text-green-700{% endif %}">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Loan to {{ loan.borrower_name }}</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                <span class="text-xs font-medium px-2 py-1 rounded-full {% if loan.status == 'outstanding' %}bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300{% else %}bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300{% endif %}">
                     {{ loan.get_status_display }}
                 </span>
             </p>
         </div>
-        <a href="{% url 'loans:list' %}" class="text-gray-600 hover:text-gray-900 text-sm">Back to Loans</a>
+        <a href="{% url 'loans:list' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm">Back to Loans</a>
     </div>
 
     <!-- Loan Details Card -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <p class="text-sm text-gray-500">Amount</p>
-                <p class="text-lg font-semibold text-gray-900">{{ loan.amount|pkr }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Amount</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ loan.amount|pkr }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">From Account</p>
-                <p class="text-lg font-semibold text-gray-900">{{ loan.account.name }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">From Account</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ loan.account.name }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">Date Lent</p>
-                <p class="text-sm text-gray-900">{{ loan.date_lent }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Date Lent</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ loan.date_lent }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">Expected Return</p>
-                <p class="text-sm text-gray-900">{{ loan.expected_return|default:"Not specified" }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Expected Return</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ loan.expected_return|default:"Not specified" }}</p>
             </div>
             {% if loan.status == "repaid" %}
             <div>
-                <p class="text-sm text-gray-500">Date Repaid</p>
-                <p class="text-sm text-gray-900">{{ loan.date_repaid }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Date Repaid</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ loan.date_repaid }}</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500">Repaid To</p>
-                <p class="text-sm text-gray-900">{{ loan.repaid_to_account.name }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Repaid To</p>
+                <p class="text-sm text-gray-900 dark:text-gray-100">{{ loan.repaid_to_account.name }}</p>
             </div>
             {% endif %}
         </div>
         {% if loan.notes %}
-        <div class="mt-4 pt-4 border-t border-gray-200">
-            <p class="text-sm text-gray-500">Notes</p>
-            <p class="text-sm text-gray-900">{{ loan.notes }}</p>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Notes</p>
+            <p class="text-sm text-gray-900 dark:text-gray-100">{{ loan.notes }}</p>
         </div>
         {% endif %}
     </div>
 
     <!-- Repay Form (only if outstanding) -->
     {% if repay_form %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Mark as Repaid</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Mark as Repaid</h2>
         <form method="post" action="{% url 'loans:repay' loan.pk %}" class="space-y-4">
             {% csrf_token %}
 
             {% for field in repay_form %}
             <div>
-                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ field.label }}</label>
                 {{ field }}
                 {% if field.errors %}
-                <p class="mt-1 text-sm text-red-600">{{ field.errors.0 }}</p>
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ field.errors.0 }}</p>
                 {% endif %}
             </div>
             {% endfor %}
