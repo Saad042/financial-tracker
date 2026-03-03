@@ -45,9 +45,9 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 ## Architecture Decisions
 
 - **Balance caching:** Account.balance is a cached DecimalField, recalculated via Django signals on every transaction, loan, and investment save/delete. Never set balance directly — it's derived from transactions, loans, and investments.
-- **Balance formula:** `income - expenses - transfers_out + transfers_in - outstanding_loans - investments_out`
+- **Balance formula:** `income - expenses - transfers_out + transfers_in - non_repaid_loans - investments_out`
 - **Transfers:** A single Transaction row with `type="transfer"`, `account` = source, `transfer_to` = destination. Not two rows.
-- **Loans:** A single Loan row tracks money lent out. Outstanding loans reduce account balance. Repaying creates an income Transaction with "Loan Repayment Received" category.
+- **Loans:** A Loan row tracks money lent out. Non-repaid loans (outstanding + partially_repaid) reduce account balance. LoanRepayment model tracks individual partial repayments — each creates an income Transaction ("Loan Repayment Received"). Loan status auto-updates: outstanding → partially_repaid → repaid. Forgiving a loan creates an expense Transaction ("Loan Written Off") for the remaining amount.
 - **Recurring:** RecurringRule defines repeating transactions. The `generate_recurring` management command creates Transaction rows (idempotent per period). Transaction has a nullable `recurring_rule` FK (`on_delete=SET_NULL`).
 - **Budgets:** Budget = (category, month) pair with an amount. Properties compute `spent`, `remaining`, `percent_used`, `status` (safe/warning/exceeded). Budget alerts surface on the dashboard.
 - **Categories:** Pre-seeded via data migration (`0002_seed_categories.py`). System categories have `is_system=True`. Categories belong to the `transactions` app.
@@ -58,7 +58,7 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - **Charts:** Chart.js loaded via CDN only on report templates (`{% block extra_js %}`). Not loaded globally. Charts use theme-aware colors (text, grid, borders) detected via `document.documentElement.classList.contains('dark')`.
 - **Investments:** Investment model tracks money invested (log only). Deducts from account balance via signals (same pattern as loans). Excluded from spending reports. Uses purple accent color.
 - **Dark mode:** Class-based strategy via `@custom-variant dark` in `theme/static_src/src/styles.css`. Theme preference stored in a `theme` cookie (light/dark/system), read synchronously in `<head>` to prevent flash. Toggle button in nav bar cycles through Light → Dark → System. No Django model needed — pure frontend. All templates use `dark:` Tailwind variants. Form `INPUT_CLASS` constants in each app's `forms.py` include dark variants.
-- **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Exports/imports tags, transaction_tags, and loan_tags alongside other models. Import disconnects transaction/loan/investment signals during bulk create, then recalculates all account balances once at the end. Backward compatible — uses `data.get()` for tag keys.
+- **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Exports/imports tags, transaction_tags, loan_tags, and loan_repayments alongside other models. Import disconnects transaction/loan/investment signals during bulk create, then recalculates all account balances once at the end. Backward compatible — uses `data.get()` for tag keys.
 - **Mobile nav:** Hamburger menu (below `sm` breakpoint) with all nav links + action buttons. Desktop buttons hidden on mobile.
 - **Active nav links:** `request.path` used to highlight current section with `text-emerald-600 font-semibold` (light) / `text-emerald-400` (dark) in both desktop and mobile menus.
 

@@ -9,7 +9,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from accounts.models import Account
 from budgets.models import Budget
 from investments.models import Investment
-from loans.models import Loan
+from loans.models import Loan, LoanRepayment
 from recurring.models import RecurringRule
 from tags.models import LoanTag, Tag, TransactionTag
 from transactions.models import Category, Transaction
@@ -64,7 +64,7 @@ class Command(BaseCommand):
         # Show summary
         self.stdout.write(f"Import file: {file_path}")
         self.stdout.write(f"Exported at: {data['meta'].get('exported_at', 'unknown')}")
-        for key in ("accounts", "categories", "transactions", "loans", "recurring_rules", "budgets", "investments", "tags", "transaction_tags", "loan_tags"):
+        for key in ("accounts", "categories", "transactions", "loans", "loan_repayments", "recurring_rules", "budgets", "investments", "tags", "transaction_tags", "loan_tags"):
             count = len(data.get(key, []))
             self.stdout.write(f"  {key}: {count} records")
 
@@ -98,6 +98,7 @@ class Command(BaseCommand):
                 # Delete in reverse dependency order
                 TransactionTag.objects.all().delete()
                 LoanTag.objects.all().delete()
+                LoanRepayment.objects.all().delete()
                 Budget.objects.all().delete()
                 Investment.objects.all().delete()
                 Transaction.objects.all().delete()
@@ -114,6 +115,7 @@ class Command(BaseCommand):
                 self._bulk_create(RecurringRule, data.get("recurring_rules", []))
                 self._bulk_create(Transaction, data.get("transactions", []))
                 self._bulk_create(Loan, data.get("loans", []))
+                self._bulk_create(LoanRepayment, data.get("loan_repayments", []))
                 self._bulk_create(Budget, data.get("budgets", []))
                 self._bulk_create(Investment, data.get("investments", []))
                 self._bulk_create(TransactionTag, data.get("transaction_tags", []))

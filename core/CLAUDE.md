@@ -9,7 +9,7 @@ Shared utilities, the main dashboard, and data export/import commands. Has no mo
 - `accounts` — all accounts for breakdown display
 - `month_income`, `month_expenses`, `month_net` — current month aggregates
 - `recent_transactions` — last 15 transactions with related objects
-- `outstanding_loans_total`, `outstanding_loans_count` — outstanding loan summary
+- `loans_active_count`, `loans_total_lent`, `loans_total_repaid`, `loans_total_remaining`, `loans_overdue_count` — active loan summary
 - `total_invested`, `investments_count` — total investment amount and count
 - `budget_alerts` — list of budgets at warning (>=80%) or exceeded (>=100%) status for the current month
 
@@ -25,7 +25,7 @@ Usage: `{% load currency %}` then `{{ amount|pkr }}`
 
 ### `export_data`
 
-Exports all app data (accounts, categories, transactions, loans, recurring_rules, budgets, investments, tags, transaction_tags, loan_tags) to a JSON file with a `meta` block containing app version and timestamp. Custom `DecimalDateEncoder` handles Decimal and date serialization.
+Exports all app data (accounts, categories, transactions, loans, loan_repayments, recurring_rules, budgets, investments, tags, transaction_tags, loan_tags) to a JSON file with a `meta` block containing app version and timestamp. Custom `DecimalDateEncoder` handles Decimal and date serialization.
 
 ```bash
 uv run python manage.py export_data                        # default: expense_tracker_export.json

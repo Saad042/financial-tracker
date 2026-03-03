@@ -9,4 +9,5 @@ urlpatterns = [
     path("add/", views.LoanCreateView.as_view(), name="create"),
     path("<int:pk>/", views.LoanDetailView.as_view(), name="detail"),
     path("<int:pk>/repay/", views.LoanRepayView.as_view(), name="repay"),
+    path("<int:pk>/forgive/", views.LoanForgiveView.as_view(), name="forgive"),
 ]

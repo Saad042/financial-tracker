@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 
 from accounts.models import Account
 
@@ -33,13 +34,36 @@ class LoanForm(forms.ModelForm):
         }
 
 
-class LoanRepayForm(forms.Form):
-    date_repaid = forms.DateField(
-        widget=forms.DateInput(attrs={"type": "date", "class": INPUT_CLASS}),
-        label="Date Repaid",
+class LoanRepaymentForm(forms.Form):
+    amount = forms.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            "class": INPUT_CLASS,
+            "placeholder": "0.00",
+            "step": "0.01",
+            "min": "0.01",
+        }),
     )
-    repaid_to_account = forms.ModelChoiceField(
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT_CLASS}),
+        label="Date",
+    )
+    account = forms.ModelChoiceField(
         queryset=Account.objects.all(),
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
-        label="Repaid To Account",
+        label="Received Into Account",
     )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            "class": INPUT_CLASS,
+            "rows": 2,
+            "placeholder": "Optional notes",
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.initial.get("date"):
+            self.initial["date"] = timezone.now().date()

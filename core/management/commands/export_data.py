@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from accounts.models import Account
 from budgets.models import Budget
 from investments.models import Investment
-from loans.models import Loan
+from loans.models import Loan, LoanRepayment
 from recurring.models import RecurringRule
 from tags.models import LoanTag, Tag, TransactionTag
 from transactions.models import Category, Transaction
@@ -62,6 +62,12 @@ class Command(BaseCommand):
                     "id", "borrower_name", "amount", "date_lent",
                     "expected_return", "status", "account_id", "notes",
                     "date_repaid", "repaid_to_account_id", "created_at",
+                )
+            ),
+            "loan_repayments": list(
+                LoanRepayment.objects.values(
+                    "id", "loan_id", "date", "amount", "account_id",
+                    "notes", "created_at",
                 )
             ),
             "recurring_rules": list(

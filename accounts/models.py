@@ -51,7 +51,7 @@ class Account(models.Model):
         from loans.models import Loan
 
         loans_out = (
-            Loan.objects.filter(account=self, status=Loan.OUTSTANDING)
+            Loan.objects.filter(account=self).exclude(status=Loan.REPAID)
             .aggregate(total=models.Sum("amount"))["total"]
             or Decimal("0.00")
         )

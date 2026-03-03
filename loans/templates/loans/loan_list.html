@@ -10,11 +10,12 @@
 </div>
 
 <!-- Outstanding Summary -->
-{% if outstanding_count %}
+{% if outstanding_count or partially_repaid_count %}
 <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-6">
     <p class="text-sm text-amber-800 dark:text-amber-300">
-        <span class="font-semibold">{{ outstanding_count }} outstanding loan{{ outstanding_count|pluralize }}</span>
-        totalling <span class="font-semibold">{{ outstanding_total|pkr }}</span>
+        {% if outstanding_count %}
+        <span class="font-semibold">{{ outstanding_count }} outstanding</span>{% endif %}{% if outstanding_count and partially_repaid_count %}, {% endif %}{% if partially_repaid_count %}<span class="font-semibold">{{ partially_repaid_count }} partially repaid</span>{% endif %}
+        &mdash; <span class="font-semibold">{{ outstanding_total|pkr }}</span> remaining
     </p>
 </div>
 {% endif %}
@@ -22,7 +23,7 @@
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
     {% if loans %}
     <div class="overflow-x-auto">
-    <table class="w-full min-w-[500px]">
+    <table class="w-full min-w-[600px]">
         <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Borrower</th>
@@ -30,6 +31,7 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Account</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Amount</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Remaining</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -41,11 +43,18 @@
                 <td class="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{{ loan.date_lent }}</td>
                 <td class="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{{ loan.account.name }}</td>
                 <td class="px-6 py-3">
-                    <span class="text-xs font-medium px-2 py-1 rounded-full {% if loan.status == 'outstanding' %}bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300{% else %}bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300{% endif %}">
+                    <span class="text-xs font-medium px-2 py-1 rounded-full {% if loan.status == 'outstanding' %}bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300{% elif loan.status == 'partially_repaid' %}bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300{% else %}bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300{% endif %}">
                         {{ loan.get_status_display }}
                     </span>
                 </td>
                 <td class="px-6 py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100">{{ loan.amount|pkr }}</td>
+                <td class="px-6 py-3 text-sm text-right font-medium {% if loan.status != 'repaid' %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">
+                    {% if loan.status != "repaid" %}
+                        {{ loan.annotated_remaining|pkr }}
+                    {% else %}
+                        &mdash;
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

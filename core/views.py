@@ -1,13 +1,14 @@
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import DecimalField, OuterRef, Subquery, Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.views.generic import TemplateView
 
 from accounts.models import Account
 from budgets.models import Budget
 from investments.models import Investment
-from loans.models import Loan
+from loans.models import Loan, LoanRepayment
 from transactions.models import Transaction
 
 
@@ -45,13 +46,39 @@ class DashboardView(TemplateView):
             Transaction.objects.select_related("category", "account", "transfer_to")[:15]
         )
 
-        # Outstanding loans
-        outstanding_loans = Loan.objects.filter(status=Loan.OUTSTANDING)
-        context["outstanding_loans_total"] = (
-            outstanding_loans.aggregate(total=Sum("amount"))["total"]
+        # Active loans (outstanding + partially repaid)
+        active_loans = Loan.objects.exclude(status=Loan.REPAID)
+        context["loans_active_count"] = active_loans.count()
+
+        loans_total_lent = (
+            active_loans.aggregate(total=Sum("amount"))["total"]
             or Decimal("0.00")
         )
-        context["outstanding_loans_count"] = outstanding_loans.count()
+        context["loans_total_lent"] = loans_total_lent
+
+        repaid_subquery = (
+            LoanRepayment.objects.filter(loan=OuterRef("pk"))
+            .values("loan")
+            .annotate(total=Sum("amount"))
+            .values("total")
+        )
+        active_annotated = active_loans.annotate(
+            total_repaid=Coalesce(
+                Subquery(repaid_subquery, output_field=DecimalField()),
+                Decimal("0.00"),
+            )
+        )
+        loans_total_repaid = (
+            active_annotated.aggregate(total=Sum("total_repaid"))["total"]
+            or Decimal("0.00")
+        )
+        context["loans_total_repaid"] = loans_total_repaid
+        context["loans_total_remaining"] = loans_total_lent - loans_total_repaid
+
+        today = now.date()
+        context["loans_overdue_count"] = active_loans.filter(
+            expected_return__lt=today
+        ).count()
 
         # Total invested
         context["total_invested"] = (
