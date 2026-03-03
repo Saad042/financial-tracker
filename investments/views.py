@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
@@ -23,6 +23,7 @@ from .models import (
     InstrumentPrice,
     InvestmentTransaction,
 )
+from .performance import compute_portfolio_series, get_inception_date
 
 
 # ---------------------------------------------------------------------------
@@ -38,9 +39,9 @@ class PortfolioDashboardView(TemplateView):
         today = timezone.now().date()
 
         instruments = Instrument.objects.filter(is_active=True)
-        holdings = []
+        holdings_by_type = defaultdict(list)
         total_value_pkr = Decimal("0")
-        total_cost_pkr = Decimal("0")
+        net_invested_pkr = Decimal("0")
         total_realized_pkr = Decimal("0")
         pkr_exposure = Decimal("0")
         usd_exposure = Decimal("0")
@@ -48,54 +49,86 @@ class PortfolioDashboardView(TemplateView):
 
         for inst in instruments:
             units = inst.current_holdings
-            if units <= 0:
-                continue
-
             price = inst.latest_price or Decimal("0")
-            value = units * price
+            value = units * price if units > 0 else Decimal("0")
             avg_cost = inst.average_cost
-            cost_basis = units * avg_cost
+            cost_basis = units * avg_cost if units > 0 else Decimal("0")
             gain_loss = value - cost_basis
             gain_loss_pct = (
                 (gain_loss / cost_basis * 100) if cost_basis else Decimal("0")
             )
             realized = inst.realized_gain_loss
+            reinvested = inst.total_reinvested
+            dividends = inst.total_dividends
 
             # Convert to PKR for portfolio totals
+            value_pkr = Decimal("0")
+            net_cash = inst.net_cash_invested
             if inst.currency == Instrument.USD:
                 rate = ExchangeRate.get_rate("USD", "PKR", today) or Decimal("1")
-                value_pkr = value * rate
-                cost_pkr = cost_basis * rate
                 realized_pkr = realized * rate
-                usd_exposure += value_pkr
+                net_cash_pkr = net_cash * rate
             else:
-                value_pkr = value
-                cost_pkr = cost_basis
+                rate = None
                 realized_pkr = realized
-                pkr_exposure += value_pkr
+                net_cash_pkr = net_cash
 
-            total_value_pkr += value_pkr
-            total_cost_pkr += cost_pkr
+            # All instruments contribute to net invested and realized
+            net_invested_pkr += net_cash_pkr
             total_realized_pkr += realized_pkr
-            allocation_by_type[inst.get_instrument_type_display()] += value_pkr
 
-            holdings.append(
+            if units > 0:
+                if rate:  # USD instrument
+                    value_pkr = value * rate
+                    usd_exposure += value_pkr
+                else:
+                    value_pkr = value
+                    pkr_exposure += value_pkr
+
+                total_value_pkr += value_pkr
+                allocation_by_type[inst.get_instrument_type_display()] += value_pkr
+
+            type_label = inst.get_instrument_type_display()
+            total_gl = gain_loss + realized + dividends + reinvested
+
+            # Percentage values (relative to total cost basis — all buys + reinvestments)
+            total_cost = inst.total_cost_basis
+            if total_cost:
+                unrealized_pct = gain_loss / total_cost * 100
+                realized_pct = realized / total_cost * 100
+                reinvested_pct = reinvested / total_cost * 100
+                dividends_pct = dividends / total_cost * 100
+                total_gl_pct = total_gl / total_cost * 100
+            else:
+                unrealized_pct = realized_pct = reinvested_pct = Decimal("0")
+                dividends_pct = total_gl_pct = Decimal("0")
+
+            holdings_by_type[type_label].append(
                 {
                     "instrument": inst,
                     "units": units,
                     "avg_cost": avg_cost,
                     "current_price": price,
                     "current_value": value,
-                    "gain_loss": gain_loss,
-                    "gain_loss_pct": gain_loss_pct,
+                    "reinvested": reinvested,
+                    "unrealized_gl": gain_loss,
+                    "realized_gl": realized,
+                    "dividends": dividends,
+                    "total_gl": total_gl,
+                    "reinvested_pct": reinvested_pct,
+                    "unrealized_pct": unrealized_pct,
+                    "realized_pct": realized_pct,
+                    "dividends_pct": dividends_pct,
+                    "total_gl_pct": total_gl_pct,
                     "value_pkr": value_pkr,
                 }
             )
 
-        total_gain_loss = total_value_pkr - total_cost_pkr + total_realized_pkr
+        # Total G/L = Portfolio Value - Net Invested (captures all cash flows)
+        total_gain_loss = total_value_pkr - net_invested_pkr
         total_gain_loss_pct = (
-            (total_gain_loss / total_cost_pkr * 100)
-            if total_cost_pkr
+            (total_gain_loss / net_invested_pkr * 100)
+            if net_invested_pkr
             else Decimal("0")
         )
 
@@ -126,9 +159,9 @@ class PortfolioDashboardView(TemplateView):
 
         context.update(
             {
-                "holdings": holdings,
+                "holdings_by_type": dict(holdings_by_type),
                 "total_value_pkr": total_value_pkr,
-                "total_cost_pkr": total_cost_pkr,
+                "net_invested_pkr": net_invested_pkr,
                 "total_gain_loss": total_gain_loss,
                 "total_gain_loss_pct": total_gain_loss_pct,
                 "total_realized_pkr": total_realized_pkr,
@@ -220,7 +253,7 @@ class InvestmentTransactionListView(ListView):
         if instrument_id:
             qs = qs.filter(instrument_id=instrument_id)
         tx_type = self.request.GET.get("type")
-        if tx_type in ("buy", "sell"):
+        if tx_type in ("buy", "sell", "reinvestment", "dividend"):
             qs = qs.filter(transaction_type=tx_type)
         return qs
 
@@ -346,3 +379,101 @@ class ExchangeRateListView(ListView):
         context = self.get_context_data()
         context["form"] = form
         return self.render_to_response(context)
+
+
+# ---------------------------------------------------------------------------
+# Portfolio Performance
+# ---------------------------------------------------------------------------
+
+
+class _DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return float(o)
+        return super().default(o)
+
+
+def _json(data):
+    return json.dumps(data, cls=_DecimalEncoder)
+
+
+class PortfolioPerformanceView(TemplateView):
+    template_name = "investments/portfolio_performance.html"
+
+    RANGE_DAYS = {
+        "1m": 30,
+        "3m": 90,
+        "6m": 180,
+    }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.now().date()
+
+        # Parse range parameter
+        range_param = self.request.GET.get("range", "6m")
+        custom_start = self.request.GET.get("start")
+        custom_end = self.request.GET.get("end")
+
+        if custom_start and custom_end:
+            try:
+                start_date = date.fromisoformat(custom_start)
+                end_date = date.fromisoformat(custom_end)
+                active_range = "custom"
+            except ValueError:
+                start_date = today - timedelta(days=180)
+                end_date = today
+                active_range = "6m"
+        elif range_param == "ytd":
+            start_date = date(today.year, 1, 1)
+            end_date = today
+            active_range = "ytd"
+        elif range_param == "all":
+            inception = get_inception_date()
+            start_date = inception if inception else today - timedelta(days=180)
+            end_date = today
+            active_range = "all"
+        elif range_param in self.RANGE_DAYS:
+            start_date = today - timedelta(days=self.RANGE_DAYS[range_param])
+            end_date = today
+            active_range = range_param
+        else:
+            start_date = today - timedelta(days=180)
+            end_date = today
+            active_range = "6m"
+
+        # Compute series
+        dates, portfolio_values, net_invested_values = compute_portfolio_series(
+            start_date, end_date
+        )
+
+        # Summary stats
+        current_value = portfolio_values[-1] if portfolio_values else Decimal("0")
+        net_invested = net_invested_values[-1] if net_invested_values else Decimal("0")
+        total_gl = current_value - net_invested
+        total_gl_pct = (total_gl / net_invested * 100) if net_invested else Decimal("0")
+
+        # Period change
+        start_value = portfolio_values[0] if portfolio_values else Decimal("0")
+        period_change = current_value - start_value
+        period_change_pct = (
+            (period_change / start_value * 100) if start_value else Decimal("0")
+        )
+
+        context.update(
+            {
+                "active_range": active_range,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "chart_dates": _json(dates),
+                "chart_portfolio": _json(portfolio_values),
+                "chart_net_invested": _json(net_invested_values),
+                "current_value": current_value,
+                "net_invested": net_invested,
+                "total_gl": total_gl,
+                "total_gl_pct": total_gl_pct,
+                "period_change": period_change,
+                "period_change_pct": period_change_pct,
+            }
+        )
+        return context

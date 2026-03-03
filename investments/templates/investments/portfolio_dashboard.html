@@ -19,8 +19,8 @@
         <p class="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{{ total_value_pkr|pkr }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Total Invested</p>
-        <p class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{{ total_cost_pkr|pkr }}</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Net Invested</p>
+        <p class="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{{ net_invested_pkr|pkr }}</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
         <p class="text-sm text-gray-500 dark:text-gray-400">Total Gain / Loss</p>
@@ -60,22 +60,29 @@
     </div>
     <!-- Performance Line -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Portfolio Value (30 Days)</h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Portfolio Value (30 Days)</h2>
+            <a href="{% url 'investments:performance' %}" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">Detailed View &rarr;</a>
+        </div>
         <div class="relative" style="height: 280px;">
             <canvas id="performanceChart"></canvas>
         </div>
     </div>
 </div>
 
-<!-- Holdings Table -->
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+<!-- Holdings by Type -->
+{% if holdings_by_type %}
+<div class="flex justify-end mb-2">
+    <button id="pct-toggle" data-mode="abs" class="text-sm px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Show %</button>
+</div>
+{% for type_label, holdings in holdings_by_type.items %}
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Holdings</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ type_label }}</h2>
         <a href="{% url 'investments:instrument_list' %}" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">Manage Instruments</a>
     </div>
-    {% if holdings %}
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[700px]">
+        <table class="w-full min-w-[1050px]">
             <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Instrument</th>
@@ -83,35 +90,45 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg Cost</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Price</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Value</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Gain/Loss</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">%</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Reinvested</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Unrealized</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Realized</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Dividends</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total G/L</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for h in holdings %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {% if h.units <= 0 %}opacity-50{% endif %}">
                     <td class="px-6 py-3 text-sm">
                         <a href="{% url 'investments:instrument_detail' h.instrument.pk %}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">{{ h.instrument.ticker }}</a>
-                        <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">{{ h.instrument.get_instrument_type_display }}</span>
+                        <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">{{ h.instrument.name }}</span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ h.units|floatformat:2 }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-400">{{ h.avg_cost|floatformat:2 }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ h.current_price|floatformat:2 }}</td>
-                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100">{{ h.current_value|floatformat:2 }}</td>
-                    <td class="px-4 py-3 text-sm text-right font-medium {% if h.gain_loss >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ h.gain_loss|floatformat:2 }}</td>
-                    <td class="px-4 py-3 text-sm text-right {% if h.gain_loss_pct >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ h.gain_loss_pct|floatformat:1 }}%</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100 num-fmt">{{ h.units|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-600 dark:text-gray-400 num-fmt">{{ h.avg_cost|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100 num-fmt">{{ h.current_price|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100 num-fmt">{{ h.current_value|floatformat:2 }}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium {% if h.reinvested > 0 %}text-blue-600 dark:text-blue-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{% if h.reinvested > 0 %}<span class="gl-abs num-fmt">{{ h.reinvested|floatformat:2 }}</span><span class="gl-pct hidden">{{ h.reinvested_pct|floatformat:1 }}%</span>{% else %}-{% endif %}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium {% if h.unrealized_gl >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}"><span class="gl-abs num-fmt">{{ h.unrealized_gl|floatformat:2 }}</span><span class="gl-pct hidden">{{ h.unrealized_pct|floatformat:1 }}%</span></td>
+                    <td class="px-4 py-3 text-sm text-right font-medium {% if h.realized_gl >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}"><span class="gl-abs num-fmt">{{ h.realized_gl|floatformat:2 }}</span><span class="gl-pct hidden">{{ h.realized_pct|floatformat:1 }}%</span></td>
+                    <td class="px-4 py-3 text-sm text-right font-medium {% if h.dividends > 0 %}text-blue-600 dark:text-blue-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{% if h.dividends > 0 %}<span class="gl-abs num-fmt">{{ h.dividends|floatformat:2 }}</span><span class="gl-pct hidden">{{ h.dividends_pct|floatformat:1 }}%</span>{% else %}-{% endif %}</td>
+                    <td class="px-4 py-3 text-sm text-right font-medium {% if h.total_gl >= 0 %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}"><span class="gl-abs num-fmt">{{ h.total_gl|floatformat:2 }}</span><span class="gl-pct hidden">{{ h.total_gl_pct|floatformat:1 }}%</span></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% else %}
-    <p class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No active holdings. <a href="{% url 'investments:transaction_create' %}" class="text-purple-600 dark:text-purple-400 hover:underline">Record a transaction</a> to get started.</p>
-    {% endif %}
 </div>
+{% endfor %}
+{% else %}
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+    <p class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No instruments. <a href="{% url 'investments:transaction_create' %}" class="text-purple-600 dark:text-purple-400 hover:underline">Record a transaction</a> to get started.</p>
+</div>
+{% endif %}
 
 <!-- Quick Links -->
 <div class="mt-6 flex flex-wrap gap-3">
+    <a href="{% url 'investments:performance' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline">Performance Chart</a>
     <a href="{% url 'investments:transaction_list' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline">All Transactions</a>
     <a href="{% url 'investments:price_history' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline">Price History</a>
     <a href="{% url 'investments:exchange_rates' %}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 underline">Exchange Rates</a>
@@ -190,6 +207,29 @@
                     legend: { display: false }
                 }
             }
+        });
+    }
+    // Comma-format all .num-fmt elements
+    document.querySelectorAll('.num-fmt').forEach(function(el) {
+        var val = parseFloat(el.textContent.trim());
+        if (!isNaN(val)) {
+            el.textContent = val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+    });
+
+    // Toggle between absolute values and percentages
+    var toggle = document.getElementById('pct-toggle');
+    if (toggle) {
+        toggle.addEventListener('click', function() {
+            var showPct = this.dataset.mode !== 'pct';
+            this.dataset.mode = showPct ? 'pct' : 'abs';
+            this.textContent = showPct ? 'Show Values' : 'Show %';
+            document.querySelectorAll('.gl-abs').forEach(function(el) {
+                el.classList.toggle('hidden', showPct);
+            });
+            document.querySelectorAll('.gl-pct').forEach(function(el) {
+                el.classList.toggle('hidden', !showPct);
+            });
         });
     }
 })();

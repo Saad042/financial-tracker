@@ -7,6 +7,8 @@ app_name = "investments"
 urlpatterns = [
     # Portfolio dashboard
     path("", views.PortfolioDashboardView.as_view(), name="list"),
+    # Performance
+    path("performance/", views.PortfolioPerformanceView.as_view(), name="performance"),
     # Instruments
     path("instruments/", views.InstrumentListView.as_view(), name="instrument_list"),
     path("instruments/add/", views.InstrumentCreateView.as_view(), name="instrument_create"),
