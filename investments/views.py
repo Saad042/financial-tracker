@@ -145,25 +145,10 @@ class PortfolioDashboardView(TemplateView):
         allocation_values = [float(v) for v in allocation_by_type.values()]
 
         # Performance data (last 30 days of portfolio value)
-        performance_dates = []
-        performance_values = []
-        for i in range(30, -1, -1):
-            d = today - timedelta(days=i)
-            day_value = Decimal("0")
-            for inst in instruments:
-                units = inst.current_holdings
-                if units <= 0:
-                    continue
-                price = InstrumentPrice.get_price(inst, d)
-                if price is None:
-                    continue
-                val = units * price
-                if inst.currency == Instrument.USD:
-                    rate = ExchangeRate.get_rate("USD", "PKR", d) or Decimal("1")
-                    val = val * rate
-                day_value += val
-            performance_dates.append(d.isoformat())
-            performance_values.append(float(day_value))
+        # Uses compute_portfolio_series for accurate historical holdings
+        perf_start = today - timedelta(days=30)
+        performance_dates, perf_values_dec, _ = compute_portfolio_series(perf_start, today)
+        performance_values = [float(v) for v in perf_values_dec]
 
         context.update(
             {
