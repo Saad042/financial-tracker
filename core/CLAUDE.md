@@ -8,11 +8,21 @@ Shared utilities, the main dashboard, and data export/import commands. Has no mo
 - `total_balance` — sum of all account balances
 - `accounts` — all accounts for breakdown display
 - `month_income`, `month_expenses`, `month_net` — current month aggregates
+- `savings_rate` — (income - expenses) / income × 100 for current month
+- `last_month_income`, `last_month_expenses` — previous month aggregates
+- `income_change_pct`, `expense_change_pct` — month-over-month percentage change (None if no prior month data)
 - `recent_transactions` — last 15 transactions with related objects
 - `loans_active_count`, `loans_total_lent`, `loans_total_repaid`, `loans_total_remaining`, `loans_overdue_count` — active loan summary
-- `portfolio_value` — total portfolio value in PKR (computed from active instruments × latest prices, USD converted via ExchangeRate)
+- `overdue_loans` — up to 5 overdue loan objects (annotated with `total_repaid`) for detail display with borrower name, due date, remaining amount
+- `portfolio_value` — total portfolio value in PKR (matches PortfolioDashboardView: active instruments × latest prices, USD converted via ExchangeRate)
+- `net_invested_pkr` — net cash deployed across all instruments (buys - sells - dividends) in PKR
+- `total_gain_loss`, `total_gain_loss_pct` — portfolio value minus net invested
+- `total_realized_pkr` — sum of realized gain/loss across all instruments in PKR
 - `has_investments` — boolean, true if any InvestmentTransaction exists
+- `net_worth` — total_balance + loans_total_remaining + portfolio_value (estimated net worth)
+- `top_categories` — top 5 expense categories this month (name + total)
 - `budget_alerts` — list of budgets at warning (>=80%) or exceeded (>=100%) status for the current month
+- `pending_recurring` — active RecurringRule objects not yet generated this period (same idempotency check as `generate_recurring` command)
 
 Template: `templates/core/dashboard.html`
 

@@ -64,6 +64,7 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 - **JSON export/import:** `export_data` and `import_data` management commands in the `core` app. Exports/imports instruments, instrument_prices, investment_transactions, exchange_rates, tags, transaction_tags, loan_tags, and loan_repayments alongside other models. Import disconnects transaction/loan/investment signals during bulk create, then recalculates all account balances once at the end. Backward compatible — uses `data.get()` for new keys.
 - **Mobile nav:** Hamburger menu (below `sm` breakpoint) with all nav links + action buttons. Desktop buttons hidden on mobile.
 - **Active nav links:** `request.path` used to highlight current section with `text-emerald-600 font-semibold` (light) / `text-emerald-400` (dark) in both desktop and mobile menus.
+- **Dashboard:** Estimated net worth banner (cash + loans receivable + portfolio value), 5 summary cards (balance, income, expenses, net, savings rate), month-over-month % change on income/expenses vs last month, overdue loan detail list (borrower name, due date, remaining), portfolio card matching investment page metrics (value, net invested, total G/L, realized gains), top 5 expense categories, upcoming recurring transactions (pending rules not yet generated this period), budget alerts, recent transactions.
 
 ## Conventions
 
