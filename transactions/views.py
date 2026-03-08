@@ -1,6 +1,7 @@
 import csv
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponse
 from django.template.loader import render_to_string
@@ -8,6 +9,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
+from core.mixins import UserScopedMixin
 from tags.models import Tag, TransactionTag
 
 from .forms import TransactionFilterForm, TransactionForm, TransferForm
@@ -27,7 +29,7 @@ def _save_transaction_tags(transaction, post_data):
         )
 
 
-def _get_tag_context(transaction=None):
+def _get_tag_context(transaction=None, user=None):
     """Build tag context for transaction forms."""
     context = {"input_class": INPUT_CLASS}
     if transaction and transaction.pk:
@@ -91,21 +93,23 @@ def _apply_transaction_filters(qs, params):
     return qs.distinct()
 
 
-class TransactionListView(ListView):
+class TransactionListView(UserScopedMixin, ListView):
     model = Transaction
     template_name = "transactions/transaction_list.html"
     context_object_name = "transactions"
     paginate_by = 25
 
     def get_queryset(self):
-        qs = Transaction.objects.select_related(
+        qs = super().get_queryset().select_related(
             "category", "account", "transfer_to"
         ).prefetch_related("transaction_tags__tag")
         return _apply_transaction_filters(qs, self.request.GET)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["filter_form"] = TransactionFilterForm(self.request.GET or None)
+        context["filter_form"] = TransactionFilterForm(
+            self.request.GET or None, user=self.request.user
+        )
         return context
 
     def get_template_names(self):
@@ -114,15 +118,20 @@ class TransactionListView(ListView):
         return [self.template_name]
 
 
-class TransactionCreateView(CreateView):
+class TransactionCreateView(UserScopedMixin, CreateView):
     model = Transaction
     form_class = TransactionForm
     template_name = "transactions/transaction_form.html"
     success_url = reverse_lazy("transactions:list")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(_get_tag_context())
+        context.update(_get_tag_context(user=self.request.user))
         return context
 
     def form_valid(self, form):
@@ -132,7 +141,7 @@ class TransactionCreateView(CreateView):
         return response
 
 
-class TransactionUpdateView(UpdateView):
+class TransactionUpdateView(UserScopedMixin, UpdateView):
     model = Transaction
     template_name = "transactions/transaction_form.html"
     success_url = reverse_lazy("transactions:list")
@@ -141,6 +150,11 @@ class TransactionUpdateView(UpdateView):
         if self.object.type == Transaction.TRANSFER:
             return TransferForm
         return TransactionForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def get_initial(self):
         initial = super().get_initial()
@@ -151,7 +165,7 @@ class TransactionUpdateView(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(_get_tag_context(self.object))
+        context.update(_get_tag_context(self.object, user=self.request.user))
         return context
 
     def form_valid(self, form):
@@ -161,7 +175,7 @@ class TransactionUpdateView(UpdateView):
         return response
 
 
-class TransactionDeleteView(DeleteView):
+class TransactionDeleteView(UserScopedMixin, DeleteView):
     model = Transaction
     template_name = "transactions/transaction_confirm_delete.html"
     success_url = reverse_lazy("transactions:list")
@@ -171,15 +185,20 @@ class TransactionDeleteView(DeleteView):
         return super().form_valid(form)
 
 
-class TransferCreateView(CreateView):
+class TransferCreateView(UserScopedMixin, CreateView):
     model = Transaction
     form_class = TransferForm
     template_name = "transactions/transfer_form.html"
     success_url = reverse_lazy("transactions:list")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(_get_tag_context())
+        context.update(_get_tag_context(user=self.request.user))
         return context
 
     def form_valid(self, form):
@@ -189,11 +208,14 @@ class TransferCreateView(CreateView):
         return response
 
 
-class TransactionCSVExportView(View):
+class TransactionCSVExportView(UserScopedMixin, View):
     """Export filtered transactions as CSV."""
 
+    def get_queryset(self):
+        return Transaction.objects.filter(user=self.request.user)
+
     def get(self, request):
-        qs = Transaction.objects.select_related(
+        qs = self.get_queryset().select_related(
             "category", "category__parent", "account", "transfer_to"
         )
         qs = _apply_transaction_filters(qs, request.GET)
@@ -228,6 +250,7 @@ class TransactionCSVExportView(View):
         return response
 
 
+@login_required
 def category_options(request):
     """HTMX endpoint: return <option> tags filtered by transaction type."""
     txn_type = request.GET.get("type", "")

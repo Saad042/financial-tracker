@@ -2,42 +2,54 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
+from core.mixins import UserScopedMixin
+
 from .forms import RecurringRuleForm
 from .models import RecurringRule
 
 
-class RecurringRuleListView(ListView):
+class RecurringRuleListView(UserScopedMixin, ListView):
     model = RecurringRule
     template_name = "recurring/rule_list.html"
     context_object_name = "rules"
 
     def get_queryset(self):
-        return RecurringRule.objects.select_related("category", "account")
+        return super().get_queryset().select_related("category", "account")
 
 
-class RecurringRuleCreateView(CreateView):
+class RecurringRuleCreateView(UserScopedMixin, CreateView):
     model = RecurringRule
     form_class = RecurringRuleForm
     template_name = "recurring/rule_form.html"
     success_url = reverse_lazy("recurring:list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         messages.success(self.request, "Recurring rule created successfully.")
         return super().form_valid(form)
 
 
-class RecurringRuleUpdateView(UpdateView):
+class RecurringRuleUpdateView(UserScopedMixin, UpdateView):
     model = RecurringRule
     form_class = RecurringRuleForm
     template_name = "recurring/rule_form.html"
     success_url = reverse_lazy("recurring:list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         messages.success(self.request, "Recurring rule updated successfully.")
         return super().form_valid(form)
 
 
-class RecurringRuleDeleteView(DeleteView):
+class RecurringRuleDeleteView(UserScopedMixin, DeleteView):
     model = RecurringRule
     template_name = "recurring/rule_confirm_delete.html"
     success_url = reverse_lazy("recurring:list")

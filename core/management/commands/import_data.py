@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction as db_transaction
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -51,6 +52,11 @@ class Command(BaseCommand):
             "--yes", action="store_true",
             help="Skip confirmation prompt",
         )
+        parser.add_argument(
+            "--user",
+            type=str,
+            help="Username to assign imported data to (required if export has no user_id fields)",
+        )
 
     def handle(self, *args, **options):
         file_path = options["file"]
@@ -65,6 +71,14 @@ class Command(BaseCommand):
 
         if "meta" not in data:
             raise CommandError("Invalid export file: missing 'meta' key")
+
+        # Determine default user for records without user_id
+        default_user = None
+        if options["user"]:
+            try:
+                default_user = User.objects.get(username=options["user"])
+            except User.DoesNotExist:
+                raise CommandError(f"User not found: {options['user']}")
 
         # Show summary
         self.stdout.write(f"Import file: {file_path}")
@@ -116,21 +130,27 @@ class Command(BaseCommand):
                 Category.objects.all().delete()
                 Account.objects.all().delete()
 
+                # Models that need user_id
+                user_models = {
+                    Account, Transaction, Loan, RecurringRule,
+                    Budget, Tag, Instrument, InvestmentTransaction,
+                }
+
                 # Restore in dependency order
-                self._bulk_create(Account, data.get("accounts", []))
-                self._bulk_create(Category, data.get("categories", []))
-                self._bulk_create(Tag, data.get("tags", []))
-                self._bulk_create(RecurringRule, data.get("recurring_rules", []))
-                self._bulk_create(Transaction, data.get("transactions", []))
-                self._bulk_create(Loan, data.get("loans", []))
-                self._bulk_create(LoanRepayment, data.get("loan_repayments", []))
-                self._bulk_create(Budget, data.get("budgets", []))
-                self._bulk_create(Instrument, data.get("instruments", []))
-                self._bulk_create(InstrumentPrice, data.get("instrument_prices", []))
-                self._bulk_create(ExchangeRate, data.get("exchange_rates", []))
-                self._bulk_create(InvestmentTransaction, data.get("investment_transactions", []))
-                self._bulk_create(TransactionTag, data.get("transaction_tags", []))
-                self._bulk_create(LoanTag, data.get("loan_tags", []))
+                self._bulk_create(Account, data.get("accounts", []), default_user, user_models)
+                self._bulk_create(Category, data.get("categories", []), default_user, user_models)
+                self._bulk_create(Tag, data.get("tags", []), default_user, user_models)
+                self._bulk_create(RecurringRule, data.get("recurring_rules", []), default_user, user_models)
+                self._bulk_create(Transaction, data.get("transactions", []), default_user, user_models)
+                self._bulk_create(Loan, data.get("loans", []), default_user, user_models)
+                self._bulk_create(LoanRepayment, data.get("loan_repayments", []), default_user, user_models)
+                self._bulk_create(Budget, data.get("budgets", []), default_user, user_models)
+                self._bulk_create(Instrument, data.get("instruments", []), default_user, user_models)
+                self._bulk_create(InstrumentPrice, data.get("instrument_prices", []), default_user, user_models)
+                self._bulk_create(ExchangeRate, data.get("exchange_rates", []), default_user, user_models)
+                self._bulk_create(InvestmentTransaction, data.get("investment_transactions", []), default_user, user_models)
+                self._bulk_create(TransactionTag, data.get("transaction_tags", []), default_user, user_models)
+                self._bulk_create(LoanTag, data.get("loan_tags", []), default_user, user_models)
 
                 # Recalculate all account balances once
                 for account in Account.objects.all():
@@ -152,15 +172,19 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Import completed successfully."))
 
-    def _bulk_create(self, model, records):
+    def _bulk_create(self, model, records, default_user, user_models):
         """Create model instances from a list of dicts."""
         if not records:
             return
+        needs_user = model in user_models
         instances = []
         for record in records:
             parsed = {}
             for key, value in record.items():
                 parsed[key] = _parse_value(value, key)
+            # Assign default user if record has no user_id
+            if needs_user and not parsed.get("user_id") and default_user:
+                parsed["user_id"] = default_user.pk
             instances.append(model(**parsed))
         model.objects.bulk_create(instances)
         self.stdout.write(f"  Imported {len(instances)} {model.__name__} records")

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -9,6 +10,9 @@ class Tag(models.Model):
         (GROUP, "Group"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tags",
+    )
     name = models.CharField(max_length=100)
     tag_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     color = models.CharField(max_length=7, blank=True, default="")
@@ -19,7 +23,7 @@ class Tag(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["name", "tag_type"], name="unique_tag_name_type"
+                fields=["user", "name", "tag_type"], name="unique_tag_user_name_type"
             ),
         ]
         ordering = ["tag_type", "name"]

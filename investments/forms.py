@@ -1,5 +1,7 @@
 from django import forms
 
+from accounts.models import Account
+
 from .models import ExchangeRate, Instrument, InvestmentTransaction
 
 ACCEPT_XLSX = ".xlsx"
@@ -117,9 +119,13 @@ class InvestmentTransactionForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["instrument"].queryset = Instrument.objects.filter(is_active=True)
+        if user:
+            self.fields["instrument"].queryset = Instrument.objects.filter(user=user, is_active=True)
+            self.fields["account"].queryset = Account.objects.filter(user=user)
+        else:
+            self.fields["instrument"].queryset = Instrument.objects.filter(is_active=True)
         self.fields["total_amount"].required = False
         self.fields["units"].required = False
         self.fields["price_per_unit"].required = False
@@ -138,12 +144,19 @@ class InvestmentTransactionForm(forms.ModelForm):
 
 class PriceImportForm(forms.Form):
     instrument = forms.ModelChoiceField(
-        queryset=Instrument.objects.filter(is_active=True),
+        queryset=Instrument.objects.none(),
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
     )
     file = forms.FileField(
         widget=forms.FileInput(attrs={"class": INPUT_CLASS, "accept": ACCEPT_XLSX}),
     )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["instrument"].queryset = Instrument.objects.filter(user=user, is_active=True)
+        else:
+            self.fields["instrument"].queryset = Instrument.objects.filter(is_active=True)
 
 
 class ExchangeRateForm(forms.ModelForm):

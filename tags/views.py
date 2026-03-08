@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Min, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -9,17 +10,19 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from core.mixins import UserScopedMixin
+
 from .forms import TagForm
 from .models import Tag, TransactionTag
 
 
-class TagListView(ListView):
+class TagListView(UserScopedMixin, ListView):
     model = Tag
     template_name = "tags/tag_list.html"
     context_object_name = "tags"
 
     def get_queryset(self):
-        return Tag.objects.filter(is_active=True).annotate(
+        return super().get_queryset().filter(is_active=True).annotate(
             transaction_count=Count("transaction_tags"),
             loan_count=Count("loan_tags"),
         )
@@ -32,7 +35,7 @@ class TagListView(ListView):
         return context
 
 
-class TagCreateView(CreateView):
+class TagCreateView(UserScopedMixin, CreateView):
     model = Tag
     form_class = TagForm
     template_name = "tags/tag_form.html"
@@ -43,7 +46,7 @@ class TagCreateView(CreateView):
         return super().form_valid(form)
 
 
-class TagUpdateView(UpdateView):
+class TagUpdateView(UserScopedMixin, UpdateView):
     model = Tag
     form_class = TagForm
     template_name = "tags/tag_form.html"
@@ -54,7 +57,7 @@ class TagUpdateView(UpdateView):
         return super().form_valid(form)
 
 
-class TagDetailView(DetailView):
+class TagDetailView(UserScopedMixin, DetailView):
     model = Tag
     template_name = "tags/tag_detail.html"
     context_object_name = "tag"
@@ -74,14 +77,15 @@ class TagDetailView(DetailView):
         return context
 
 
-class TagGroupsView(ListView):
+class TagGroupsView(UserScopedMixin, ListView):
     model = Tag
     template_name = "tags/tag_groups.html"
     context_object_name = "groups"
 
     def get_queryset(self):
         return (
-            Tag.objects.filter(tag_type=Tag.GROUP, is_active=True)
+            super().get_queryset()
+            .filter(tag_type=Tag.GROUP, is_active=True)
             .annotate(
                 transaction_count=Count("transaction_tags"),
                 total_amount=Sum("transaction_tags__transaction__amount"),
@@ -92,14 +96,15 @@ class TagGroupsView(ListView):
         )
 
 
-class TagPlacesView(ListView):
+class TagPlacesView(UserScopedMixin, ListView):
     model = Tag
     template_name = "tags/tag_places.html"
     context_object_name = "places"
 
     def get_queryset(self):
         return (
-            Tag.objects.filter(tag_type=Tag.PLACE, is_active=True)
+            super().get_queryset()
+            .filter(tag_type=Tag.PLACE, is_active=True)
             .annotate(
                 transaction_count=Count("transaction_tags"),
                 total_spent=Sum(
@@ -111,20 +116,24 @@ class TagPlacesView(ListView):
         )
 
 
-class TagArchiveView(View):
+class TagArchiveView(UserScopedMixin, View):
+    def get_queryset(self):
+        return Tag.objects.filter(user=self.request.user)
+
     def post(self, request, pk):
-        tag = get_object_or_404(Tag, pk=pk)
+        tag = get_object_or_404(self.get_queryset(), pk=pk)
         tag.is_active = False
         tag.save()
         messages.success(request, f'Tag "{tag.name}" archived.')
         return redirect("tags:list")
 
 
+@login_required
 def tag_search(request):
     """HTMX endpoint: search active tags by name."""
     q = request.GET.get("q", "").strip()
     tag_type = request.GET.get("tag_type", "")
-    tags = Tag.objects.filter(is_active=True)
+    tags = Tag.objects.filter(user=request.user, is_active=True)
     if tag_type:
         tags = tags.filter(tag_type=tag_type)
     if q:
@@ -138,6 +147,7 @@ def tag_search(request):
     return HttpResponse(html)
 
 
+@login_required
 def tag_create_inline(request):
     """HTMX endpoint: create a new tag inline and return a chip."""
     if request.method == "POST":
@@ -145,6 +155,7 @@ def tag_create_inline(request):
         tag_type = request.POST.get("tag_type", "")
         if name and tag_type in ("place", "group"):
             tag, created = Tag.objects.get_or_create(
+                user=request.user,
                 name=name,
                 tag_type=tag_type,
                 defaults={"is_active": True},

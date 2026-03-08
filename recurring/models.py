@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -17,6 +18,9 @@ class RecurringRule(models.Model):
         (ANNUAL, "Annual"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recurring_rules",
+    )
     name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)

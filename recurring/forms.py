@@ -1,6 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
+from accounts.models import Account
+
 from .models import RecurringRule
 
 INPUT_CLASS = "w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
@@ -40,7 +42,7 @@ class RecurringRuleForm(forms.ModelForm):
             }),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         from transactions.models import Category
 
@@ -50,6 +52,8 @@ class RecurringRuleForm(forms.ModelForm):
             )
         else:
             self.fields["category"].queryset = Category.objects.all()
+        if user:
+            self.fields["account"].queryset = Account.objects.filter(user=user)
 
     def clean(self):
         cleaned_data = super().clean()

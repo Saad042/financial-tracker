@@ -33,6 +33,11 @@ class LoanForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["account"].queryset = Account.objects.filter(user=user)
+
 
 class LoanRepaymentForm(forms.Form):
     amount = forms.DecimalField(
@@ -50,7 +55,7 @@ class LoanRepaymentForm(forms.Form):
         label="Date",
     )
     account = forms.ModelChoiceField(
-        queryset=Account.objects.all(),
+        queryset=Account.objects.none(),
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
         label="Received Into Account",
     )
@@ -63,7 +68,11 @@ class LoanRepaymentForm(forms.Form):
         }),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.initial.get("date"):
             self.initial["date"] = timezone.now().date()
+        if user:
+            self.fields["account"].queryset = Account.objects.filter(user=user)
+        else:
+            self.fields["account"].queryset = Account.objects.all()

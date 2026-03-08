@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import DecimalField, F, OuterRef, Subquery, Sum
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect
@@ -9,6 +10,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView
 
+from core.mixins import UserScopedMixin
 from tags.models import LoanTag, Tag
 from transactions.models import Category, Transaction
 
@@ -42,7 +44,7 @@ def _get_loan_tag_context(loan=None):
     return context
 
 
-class LoanListView(ListView):
+class LoanListView(UserScopedMixin, ListView):
     model = Loan
     template_name = "loans/loan_list.html"
     context_object_name = "loans"
@@ -55,7 +57,8 @@ class LoanListView(ListView):
             .values("total")
         )
         return (
-            Loan.objects.select_related("account", "repaid_to_account")
+            super().get_queryset()
+            .select_related("account", "repaid_to_account")
             .annotate(
                 total_repaid=Coalesce(
                     Subquery(repaid_subquery, output_field=DecimalField()),
@@ -72,7 +75,7 @@ class LoanListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        non_repaid = Loan.objects.exclude(status=Loan.REPAID)
+        non_repaid = Loan.objects.filter(user=self.request.user).exclude(status=Loan.REPAID)
         context["outstanding_count"] = non_repaid.filter(status=Loan.OUTSTANDING).count()
         context["partially_repaid_count"] = non_repaid.filter(status=Loan.PARTIALLY_REPAID).count()
 
@@ -95,11 +98,16 @@ class LoanListView(ListView):
         return context
 
 
-class LoanCreateView(CreateView):
+class LoanCreateView(UserScopedMixin, CreateView):
     model = Loan
     form_class = LoanForm
     template_name = "loans/loan_form.html"
     success_url = reverse_lazy("loans:list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -113,13 +121,13 @@ class LoanCreateView(CreateView):
         return response
 
 
-class LoanDetailView(DetailView):
+class LoanDetailView(UserScopedMixin, DetailView):
     model = Loan
     template_name = "loans/loan_detail.html"
     context_object_name = "loan"
 
     def get_queryset(self):
-        return Loan.objects.select_related("account", "repaid_to_account")
+        return super().get_queryset().select_related("account", "repaid_to_account")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -144,16 +152,22 @@ class LoanDetailView(DetailView):
         # Show repayment form if loan is not fully repaid
         if loan.status != Loan.REPAID:
             context["repayment_form"] = LoanRepaymentForm(
-                initial={"amount": amount_remaining}
+                initial={"amount": amount_remaining},
+                user=self.request.user,
             )
 
         return context
 
 
-class LoanRepayView(View):
+class LoanRepayView(UserScopedMixin, View):
+    def get_queryset(self):
+        return Loan.objects.filter(user=self.request.user)
+
     def post(self, request, pk):
-        loan = get_object_or_404(Loan.objects.exclude(status=Loan.REPAID), pk=pk)
-        form = LoanRepaymentForm(request.POST)
+        loan = get_object_or_404(
+            self.get_queryset().exclude(status=Loan.REPAID), pk=pk
+        )
+        form = LoanRepaymentForm(request.POST, user=request.user)
 
         if form.is_valid():
             amount = form.cleaned_data["amount"]
@@ -184,6 +198,7 @@ class LoanRepayView(View):
                 name="Loan Repayment Received", type=Category.INCOME
             ).first()
             Transaction.objects.create(
+                user=request.user,
                 date=date,
                 amount=amount,
                 type=Transaction.INCOME,
@@ -211,15 +226,21 @@ class LoanRepayView(View):
         return redirect("loans:detail", pk=loan.pk)
 
 
-class LoanForgiveView(View):
+class LoanForgiveView(UserScopedMixin, View):
+    def get_queryset(self):
+        return Loan.objects.filter(user=self.request.user)
+
     def post(self, request, pk):
-        loan = get_object_or_404(Loan.objects.exclude(status=Loan.REPAID), pk=pk)
+        loan = get_object_or_404(
+            self.get_queryset().exclude(status=Loan.REPAID), pk=pk
+        )
 
         # Create expense transaction for the full loan amount written off
         category = Category.objects.filter(
             name="Loan Written Off", type=Category.EXPENSE
         ).first()
         Transaction.objects.create(
+            user=request.user,
             date=timezone.now().date(),
             amount=loan.amount_remaining,
             type=Transaction.EXPENSE,

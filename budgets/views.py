@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 
 from dateutil.relativedelta import relativedelta
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.views import View
 from django.views.generic import TemplateView
@@ -23,14 +24,14 @@ def _parse_month(request):
     return date.today().replace(day=1)
 
 
-class BudgetOverviewView(TemplateView):
+class BudgetOverviewView(LoginRequiredMixin, TemplateView):
     template_name = "budgets/budget_overview.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         month = _parse_month(self.request)
         budgets = (
-            Budget.objects.filter(month=month)
+            Budget.objects.filter(user=self.request.user, month=month)
             .select_related("category")
         )
 
@@ -48,7 +49,7 @@ class BudgetOverviewView(TemplateView):
         return context
 
 
-class BudgetSetView(TemplateView):
+class BudgetSetView(LoginRequiredMixin, TemplateView):
     template_name = "budgets/budget_set.html"
 
     def get_context_data(self, **kwargs):
@@ -60,7 +61,7 @@ class BudgetSetView(TemplateView):
         categories = Category.objects.filter(type=Category.EXPENSE, parent__isnull=True)
         existing = {
             b.category_id: b.amount
-            for b in Budget.objects.filter(month=month)
+            for b in Budget.objects.filter(user=self.request.user, month=month)
         }
         context["categories"] = [
             {"category": cat, "amount": existing.get(cat.id, "")}
@@ -82,6 +83,7 @@ class BudgetSetView(TemplateView):
                     continue
                 if amount > 0:
                     Budget.objects.update_or_create(
+                        user=request.user,
                         category=cat,
                         month=month,
                         defaults={"amount": amount},
@@ -89,18 +91,18 @@ class BudgetSetView(TemplateView):
                     count += 1
             else:
                 # Remove budget if amount is cleared
-                Budget.objects.filter(category=cat, month=month).delete()
+                Budget.objects.filter(user=request.user, category=cat, month=month).delete()
 
         messages.success(request, f"Budgets updated ({count} categories).")
         return redirect(f"/budgets/?month={month.strftime('%Y-%m')}")
 
 
-class BudgetCopyView(View):
+class BudgetCopyView(LoginRequiredMixin, View):
     def post(self, request):
         month = _parse_month(request)
         prev_month = month - relativedelta(months=1)
 
-        prev_budgets = Budget.objects.filter(month=prev_month)
+        prev_budgets = Budget.objects.filter(user=request.user, month=prev_month)
         if not prev_budgets.exists():
             messages.warning(request, "No budgets found for the previous month.")
             return redirect(f"/budgets/?month={month.strftime('%Y-%m')}")
@@ -108,6 +110,7 @@ class BudgetCopyView(View):
         count = 0
         for budget in prev_budgets:
             _, created = Budget.objects.get_or_create(
+                user=request.user,
                 category=budget.category,
                 month=month,
                 defaults={"amount": budget.amount},

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -42,6 +43,9 @@ class Transaction(models.Model):
         (TRANSFER, "Transfer"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transactions",
+    )
     date = models.DateField(default=timezone.now)
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)

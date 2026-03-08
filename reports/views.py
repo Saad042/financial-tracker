@@ -3,6 +3,7 @@ from datetime import date
 from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
 from django.views.generic import TemplateView
 
@@ -32,23 +33,24 @@ def _json(data):
     return json.dumps(data, cls=_DecimalEncoder)
 
 
-class MonthlyBreakdownView(TemplateView):
+class MonthlyBreakdownView(LoginRequiredMixin, TemplateView):
     template_name = "reports/monthly_breakdown.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         month = _parse_month(self.request)
+        user = self.request.user
         context["month"] = month
         context["prev_month"] = (month - relativedelta(months=1)).strftime("%Y-%m")
         context["next_month"] = (month + relativedelta(months=1)).strftime("%Y-%m")
 
         # Current month expenses by parent category
-        categories_data = self._get_month_data(month)
+        categories_data = self._get_month_data(month, user)
         context["categories"] = categories_data
 
         # Previous month data for comparison
         prev_month_date = month - relativedelta(months=1)
-        prev_data = self._get_month_data(prev_month_date)
+        prev_data = self._get_month_data(prev_month_date, user)
         context["prev_month_date"] = prev_month_date
 
         # Total spending
@@ -74,7 +76,7 @@ class MonthlyBreakdownView(TemplateView):
 
         return context
 
-    def _get_month_data(self, month):
+    def _get_month_data(self, month, user):
         """Get expense breakdown by parent category for a given month."""
         parent_cats = Category.objects.filter(
             type=Category.EXPENSE, parent__isnull=True
@@ -86,6 +88,7 @@ class MonthlyBreakdownView(TemplateView):
             )
             total = (
                 Transaction.objects.filter(
+                    user=user,
                     type=Transaction.EXPENSE,
                     category_id__in=category_ids,
                     date__year=month.year,
@@ -99,6 +102,7 @@ class MonthlyBreakdownView(TemplateView):
             for child in cat.children.all():
                 sub_total = (
                     Transaction.objects.filter(
+                        user=user,
                         type=Transaction.EXPENSE,
                         category_id=child.id,
                         date__year=month.year,
@@ -118,11 +122,12 @@ class MonthlyBreakdownView(TemplateView):
         return sorted(results, key=lambda x: x["total"], reverse=True)
 
 
-class TrendsView(TemplateView):
+class TrendsView(LoginRequiredMixin, TemplateView):
     template_name = "reports/trends.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
 
         try:
             months = int(self.request.GET.get("months", 6))
@@ -144,6 +149,7 @@ class TrendsView(TemplateView):
 
             income = (
                 Transaction.objects.filter(
+                    user=user,
                     type=Transaction.INCOME,
                     date__year=m.year,
                     date__month=m.month,
@@ -152,6 +158,7 @@ class TrendsView(TemplateView):
             )
             expense = (
                 Transaction.objects.filter(
+                    user=user,
                     type=Transaction.EXPENSE,
                     date__year=m.year,
                     date__month=m.month,
@@ -171,11 +178,12 @@ class TrendsView(TemplateView):
         return context
 
 
-class ReportHubView(TemplateView):
+class ReportHubView(LoginRequiredMixin, TemplateView):
     template_name = "reports/report_hub.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
         today = date.today()
         month_start = today.replace(day=1)
 
@@ -190,6 +198,7 @@ class ReportHubView(TemplateView):
             )
             total = (
                 Transaction.objects.filter(
+                    user=user,
                     type=Transaction.EXPENSE,
                     category_id__in=category_ids,
                     date__year=month_start.year,
@@ -208,23 +217,24 @@ class ReportHubView(TemplateView):
         context["month_total_spending"] = sum(c["total"] for c in top_spending)
 
         # Loan summary
+        user_loans = Loan.objects.filter(user=user)
         context["total_lent"] = (
-            Loan.objects.aggregate(total=Sum("amount"))["total"]
+            user_loans.aggregate(total=Sum("amount"))["total"]
             or Decimal("0")
         )
-        context["outstanding_count"] = Loan.objects.filter(
+        context["outstanding_count"] = user_loans.filter(
             status=Loan.OUTSTANDING
         ).count()
-        context["repaid_count"] = Loan.objects.filter(
+        context["repaid_count"] = user_loans.filter(
             status=Loan.REPAID
         ).count()
         context["outstanding_amount"] = (
-            Loan.objects.filter(status=Loan.OUTSTANDING)
+            user_loans.filter(status=Loan.OUTSTANDING)
             .aggregate(total=Sum("amount"))["total"]
             or Decimal("0")
         )
 
         # Recent loans
-        context["recent_loans"] = Loan.objects.select_related("account")[:5]
+        context["recent_loans"] = user_loans.select_related("account")[:5]
 
         return context

@@ -36,7 +36,7 @@ class TransactionForm(forms.ModelForm):
             }),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         # Only show income/expense choices (not transfer)
         self.fields["type"].choices = [
@@ -50,6 +50,9 @@ class TransactionForm(forms.ModelForm):
             )
         else:
             self.fields["category"].queryset = Category.objects.all()
+        # Filter accounts by user
+        if user:
+            self.fields["account"].queryset = Account.objects.filter(user=user)
 
     def clean(self):
         cleaned_data = super().clean()
@@ -83,7 +86,7 @@ class TransactionFilterForm(forms.Form):
     )
     account = forms.ModelChoiceField(
         required=False,
-        queryset=Account.objects.all(),
+        queryset=Account.objects.none(),
         empty_label="All accounts",
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
     )
@@ -105,7 +108,7 @@ class TransactionFilterForm(forms.Form):
     )
     tag = forms.ModelChoiceField(
         required=False,
-        queryset=Tag.objects.filter(is_active=True),
+        queryset=Tag.objects.none(),
         empty_label="All tags",
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
     )
@@ -115,15 +118,24 @@ class TransactionFilterForm(forms.Form):
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
     )
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["account"].queryset = Account.objects.filter(user=user)
+            self.fields["tag"].queryset = Tag.objects.filter(user=user, is_active=True)
+        else:
+            self.fields["account"].queryset = Account.objects.all()
+            self.fields["tag"].queryset = Tag.objects.filter(is_active=True)
+
 
 class TransferForm(forms.ModelForm):
     from_account = forms.ModelChoiceField(
-        queryset=Account.objects.all(),
+        queryset=Account.objects.none(),
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
         label="From Account",
     )
     to_account = forms.ModelChoiceField(
-        queryset=Account.objects.all(),
+        queryset=Account.objects.none(),
         widget=forms.Select(attrs={"class": INPUT_CLASS}),
         label="To Account",
     )
@@ -145,6 +157,15 @@ class TransferForm(forms.ModelForm):
                 "placeholder": "Optional description",
             }),
         }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            qs = Account.objects.filter(user=user)
+        else:
+            qs = Account.objects.all()
+        self.fields["from_account"].queryset = qs
+        self.fields["to_account"].queryset = qs
 
     def clean(self):
         cleaned_data = super().clean()

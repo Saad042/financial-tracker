@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 
 
@@ -11,6 +12,9 @@ class Account(models.Model):
         (CASH, "Cash"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="accounts",
+    )
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPE_CHOICES)
     initial_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))

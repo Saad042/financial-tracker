@@ -1,0 +1,50 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Expense Tracker</title>
+    {% tailwind_css %}
+    <script>
+    (function() {
+        var t = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+        var pref = t ? t[1] : 'system';
+        var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+    })();
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md px-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center mb-2">Expense Tracker</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-center mb-8">Sign in to your account</p>
+
+            {% if form.errors %}
+            <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                <p class="text-sm text-red-700 dark:text-red-300">Invalid username or password. Please try again.</p>
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-5">
+                {% csrf_token %}
+                <div>
+                    <label for="id_username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                    <input type="text" name="username" id="id_username" autofocus required
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-4 py-2.5">
+                </div>
+                <div>
+                    <label for="id_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                    <input type="password" name="password" id="id_password" required
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-4 py-2.5">
+                </div>
+                <input type="hidden" name="next" value="{{ next }}">
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-colors">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

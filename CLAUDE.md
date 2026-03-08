@@ -1,13 +1,15 @@
 # Expense Tracker
 
-Personal expense tracking web app. All amounts in PKR. Local-first, single-user, SQLite-backed.
+Multi-user expense tracking web app. All amounts in PKR. Supports local dev (SQLite) and production deployment (PostgreSQL on Render).
 
 ## Tech Stack
 
-- **Backend:** Django 6.0, Python 3.12, SQLite
+- **Backend:** Django 6.0, Python 3.12, SQLite (dev) / PostgreSQL (prod)
 - **Frontend:** Django Templates, Tailwind CSS v4 (standalone via django-tailwind), HTMX
 - **Package manager:** uv
-- **Dev tools:** django-browser-reload, django-htmx
+- **Auth:** Django built-in auth, invite-only (no self-registration)
+- **Deployment:** Render (gunicorn + whitenoise + PostgreSQL)
+- **Dev tools:** django-browser-reload, django-htmx, django-environ
 
 ## Commands
 
@@ -46,6 +48,9 @@ templates/           # Project-level templates (base.html, dashboard, partials)
 
 ## Architecture Decisions
 
+- **Multi-user:** Every data model (Account, Transaction, Loan, RecurringRule, Budget, Tag, Instrument, InvestmentTransaction) has a `user` FK. Global models (Category, InstrumentPrice, ExchangeRate, LoanRepayment, TransactionTag, LoanTag) don't need user — they're scoped via their parent FK. `UserScopedMixin` in `core/mixins.py` auto-filters querysets and sets user on create. Budget unique constraint is `(user, category, month)`. Tag unique constraint is `(user, name, tag_type)`. Instrument unique constraint is `(user, ticker)`.
+- **Auth:** Django built-in auth. Login at `/auth/login/`, logout at `/auth/logout/`. `LOGIN_URL = '/auth/login/'`. Invite-only — no registration view. Users created via `createsuperuser` or Django admin.
+- **Settings:** `django-environ` for env vars. SQLite default when no `DATABASE_URL`. WhiteNoise for static files. Production security (HSTS, secure cookies) when `DEBUG=False`. `django_browser_reload` only loaded when `DEBUG=True`.
 - **Balance caching:** Account.balance is a cached DecimalField, recalculated via Django signals on every transaction, loan, and investment save/delete. Never set balance directly — it's derived from transactions, loans, and investments.
 - **Balance formula:** `income - expenses - transfers_out + transfers_in - non_repaid_loans - investment_buys + investment_sells + investment_dividends` (buy/sell/dividend amounts inclusive of fees and tax)
 - **Transfers:** A single Transaction row with `type="transfer"`, `account` = source, `transfer_to` = destination. Not two rows.

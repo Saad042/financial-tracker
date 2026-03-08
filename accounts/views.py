@@ -2,19 +2,20 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from core.mixins import UserScopedMixin
 from transactions.models import Transaction
 
 from .forms import AccountForm
 from .models import Account
 
 
-class AccountListView(ListView):
+class AccountListView(UserScopedMixin, ListView):
     model = Account
     template_name = "accounts/account_list.html"
     context_object_name = "accounts"
 
 
-class AccountCreateView(CreateView):
+class AccountCreateView(UserScopedMixin, CreateView):
     model = Account
     form_class = AccountForm
     template_name = "accounts/account_form.html"
@@ -27,7 +28,7 @@ class AccountCreateView(CreateView):
         return response
 
 
-class AccountUpdateView(UpdateView):
+class AccountUpdateView(UserScopedMixin, UpdateView):
     model = Account
     form_class = AccountForm
     template_name = "accounts/account_form.html"
@@ -41,7 +42,7 @@ class AccountUpdateView(UpdateView):
         return response
 
 
-class AccountDetailView(DetailView):
+class AccountDetailView(UserScopedMixin, DetailView):
     model = Account
     template_name = "accounts/account_detail.html"
     context_object_name = "account"

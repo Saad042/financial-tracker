@@ -12,6 +12,10 @@ wheels/
 # Django
 db.sqlite3
 db.sqlite3-journal
+staticfiles/
+
+# Environment
+.env
 
 # Node
 node_modules/

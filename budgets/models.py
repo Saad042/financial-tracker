@@ -1,9 +1,13 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 
 
 class Budget(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="budgets",
+    )
     category = models.ForeignKey(
         "transactions.Category", on_delete=models.PROTECT, related_name="budgets"
     )
@@ -13,7 +17,7 @@ class Budget(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["category", "month"], name="unique_budget_category_month"
+                fields=["user", "category", "month"], name="unique_budget_user_category_month"
             ),
         ]
         ordering = ["-month", "category__name"]
@@ -34,6 +38,7 @@ class Budget(models.Model):
 
         total = (
             Transaction.objects.filter(
+                user=self.user,
                 type=Transaction.EXPENSE,
                 category_id__in=category_ids,
                 date__year=self.month.year,

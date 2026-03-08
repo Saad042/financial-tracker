@@ -24,6 +24,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-8">
                     <a href="{% url 'dashboard' %}" class="text-xl font-bold text-gray-900 dark:text-gray-100">Expense Tracker</a>
+                    {% if user.is_authenticated %}
                     <div class="hidden sm:flex space-x-1 lg:space-x-4">
                         <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Dashboard</a>
                         <a href="{% url 'accounts:list' %}" class="{% if '/accounts/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Accounts</a>
@@ -35,6 +36,7 @@
                         <a href="{% url 'investments:list' %}" class="{% if '/investments/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Investments</a>
                         <a href="{% url 'tags:list' %}" class="{% if '/tags/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium whitespace-nowrap">Tags</a>
                     </div>
+                    {% endif %}
                 </div>
                 <div class="flex items-center space-x-3">
                     <!-- Theme toggle -->
@@ -48,10 +50,17 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                         </svg>
                     </button>
+                    {% if user.is_authenticated %}
+                    <span class="hidden sm:inline text-sm text-gray-500 dark:text-gray-400">{{ user.username }}</span>
+                    <form method="post" action="{% url 'logout' %}" class="hidden sm:inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">Logout</button>
+                    </form>
                     <div class="hidden sm:flex items-center space-x-3">
                         <a href="{% url 'transactions:create' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors whitespace-nowrap">+ Add Transaction</a>
                         <a href="{% url 'transfer_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors whitespace-nowrap">Transfer</a>
                     </div>
+                    {% endif %}
                     <!-- Hamburger button (mobile only) -->
                     <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="sm:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Toggle menu">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -63,6 +72,7 @@
         </div>
 
         <!-- Mobile menu -->
+        {% if user.is_authenticated %}
         <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-200 dark:border-gray-700">
             <div class="px-4 py-3 space-y-1">
                 <a href="{% url 'dashboard' %}" class="block {% if request.path == '/' %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
@@ -75,11 +85,16 @@
                 <a href="{% url 'investments:list' %}" class="block {% if '/investments/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Investments</a>
                 <a href="{% url 'tags:list' %}" class="block {% if '/tags/' in request.path %}text-emerald-600 dark:text-emerald-400 font-semibold{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100{% endif %} px-3 py-2 rounded-md text-sm font-medium">Tags</a>
             </div>
-            <div class="px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex space-x-3">
+            <div class="px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center space-x-3">
                 <a href="{% url 'transactions:create' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">+ Add Transaction</a>
                 <a href="{% url 'transfer_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Transfer</a>
+                <form method="post" action="{% url 'logout' %}" class="ml-auto">
+                    {% csrf_token %}
+                    <button type="submit" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">Logout ({{ user.username }})</button>
+                </form>
             </div>
         </div>
+        {% endif %}
     </nav>
 
     <!-- Messages -->

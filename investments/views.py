@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import F, Sum
 from django.http import JsonResponse
 from django.shortcuts import redirect
@@ -17,6 +18,8 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
+
+from core.mixins import UserScopedMixin
 
 from .forms import (
     ExchangeRateForm,
@@ -39,14 +42,15 @@ from .performance import compute_portfolio_series, get_inception_date
 # ---------------------------------------------------------------------------
 
 
-class PortfolioDashboardView(TemplateView):
+class PortfolioDashboardView(LoginRequiredMixin, TemplateView):
     template_name = "investments/portfolio_dashboard.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
+        user = self.request.user
 
-        instruments = Instrument.objects.filter(is_active=True)
+        instruments = Instrument.objects.filter(user=user, is_active=True)
         holdings_by_type = defaultdict(list)
         total_value_pkr = Decimal("0")
         net_invested_pkr = Decimal("0")
@@ -145,9 +149,10 @@ class PortfolioDashboardView(TemplateView):
         allocation_values = [float(v) for v in allocation_by_type.values()]
 
         # Performance data (last 30 days of portfolio value)
-        # Uses compute_portfolio_series for accurate historical holdings
         perf_start = today - timedelta(days=30)
-        performance_dates, perf_values_dec, _ = compute_portfolio_series(perf_start, today)
+        performance_dates, perf_values_dec, _ = compute_portfolio_series(
+            perf_start, today, user=user
+        )
         performance_values = [float(v) for v in perf_values_dec]
 
         context.update(
@@ -174,13 +179,13 @@ class PortfolioDashboardView(TemplateView):
 # ---------------------------------------------------------------------------
 
 
-class InstrumentListView(ListView):
+class InstrumentListView(UserScopedMixin, ListView):
     model = Instrument
     template_name = "investments/instrument_list.html"
     context_object_name = "instruments"
 
 
-class InstrumentCreateView(CreateView):
+class InstrumentCreateView(UserScopedMixin, CreateView):
     model = Instrument
     form_class = InstrumentForm
     template_name = "investments/instrument_form.html"
@@ -191,7 +196,7 @@ class InstrumentCreateView(CreateView):
         return super().form_valid(form)
 
 
-class InstrumentUpdateView(UpdateView):
+class InstrumentUpdateView(UserScopedMixin, UpdateView):
     model = Instrument
     form_class = InstrumentForm
     template_name = "investments/instrument_form.html"
@@ -204,7 +209,7 @@ class InstrumentUpdateView(UpdateView):
         return super().form_valid(form)
 
 
-class InstrumentDetailView(DetailView):
+class InstrumentDetailView(UserScopedMixin, DetailView):
     model = Instrument
     template_name = "investments/instrument_detail.html"
     context_object_name = "instrument"
@@ -235,13 +240,13 @@ class InstrumentDetailView(DetailView):
 # ---------------------------------------------------------------------------
 
 
-class InvestmentTransactionListView(ListView):
+class InvestmentTransactionListView(UserScopedMixin, ListView):
     model = InvestmentTransaction
     template_name = "investments/transaction_list.html"
     context_object_name = "transactions"
 
     def get_queryset(self):
-        qs = InvestmentTransaction.objects.select_related("instrument", "account")
+        qs = super().get_queryset().select_related("instrument", "account")
         instrument_id = self.request.GET.get("instrument")
         if instrument_id:
             qs = qs.filter(instrument_id=instrument_id)
@@ -252,17 +257,22 @@ class InvestmentTransactionListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["instruments"] = Instrument.objects.filter(is_active=True)
+        context["instruments"] = Instrument.objects.filter(user=self.request.user, is_active=True)
         context["selected_instrument"] = self.request.GET.get("instrument", "")
         context["selected_type"] = self.request.GET.get("type", "")
         return context
 
 
-class InvestmentTransactionCreateView(CreateView):
+class InvestmentTransactionCreateView(UserScopedMixin, CreateView):
     model = InvestmentTransaction
     form_class = InvestmentTransactionForm
     template_name = "investments/transaction_form.html"
     success_url = reverse_lazy("investments:transaction_list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         messages.success(self.request, "Transaction recorded successfully.")
@@ -274,7 +284,7 @@ class InvestmentTransactionCreateView(CreateView):
 # ---------------------------------------------------------------------------
 
 
-class BulkPriceEntryView(TemplateView):
+class BulkPriceEntryView(LoginRequiredMixin, TemplateView):
     template_name = "investments/bulk_price_entry.html"
 
     def get_context_data(self, **kwargs):
@@ -283,7 +293,7 @@ class BulkPriceEntryView(TemplateView):
         selected_date = self.request.GET.get("date", today.isoformat())
         context["selected_date"] = selected_date
 
-        instruments = Instrument.objects.filter(is_active=True)
+        instruments = Instrument.objects.filter(user=self.request.user, is_active=True)
         instrument_data = []
         for inst in instruments:
             # Get existing price for selected date
@@ -304,6 +314,7 @@ class BulkPriceEntryView(TemplateView):
         context["instrument_data"] = instrument_data
         crypto_instruments = list(
             Instrument.objects.filter(
+                user=self.request.user,
                 instrument_type=Instrument.CRYPTO, is_active=True
             ).exclude(api_id="")
         )
@@ -313,7 +324,7 @@ class BulkPriceEntryView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         date = request.POST.get("price_date", timezone.now().date().isoformat())
-        instruments = Instrument.objects.filter(is_active=True)
+        instruments = Instrument.objects.filter(user=request.user, is_active=True)
         count = 0
         for inst in instruments:
             price_val = request.POST.get(f"price_{inst.pk}", "").strip()
@@ -333,7 +344,7 @@ class BulkPriceEntryView(TemplateView):
 # ---------------------------------------------------------------------------
 
 
-class FetchCryptoPricesView(View):
+class FetchCryptoPricesView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         ticker = request.POST.get("ticker", "").strip() or None
         start_date = None
@@ -344,7 +355,8 @@ class FetchCryptoPricesView(View):
             end_date = date.fromisoformat(request.POST["end_date"])
 
         started = start_background_fetch(
-            ticker=ticker, start_date=start_date, end_date=end_date
+            ticker=ticker, start_date=start_date, end_date=end_date,
+            user=request.user,
         )
         if started:
             messages.info(request, "Fetching crypto prices in the background...")
@@ -361,14 +373,16 @@ class FetchCryptoPricesView(View):
 # ---------------------------------------------------------------------------
 
 
-class PriceHistoryView(ListView):
+class PriceHistoryView(LoginRequiredMixin, ListView):
     model = InstrumentPrice
     template_name = "investments/price_history.html"
     context_object_name = "prices"
     paginate_by = 50
 
     def get_queryset(self):
-        qs = InstrumentPrice.objects.select_related("instrument")
+        qs = InstrumentPrice.objects.filter(
+            instrument__user=self.request.user
+        ).select_related("instrument")
         instrument_id = self.request.GET.get("instrument")
         if instrument_id:
             qs = qs.filter(instrument_id=instrument_id)
@@ -376,7 +390,7 @@ class PriceHistoryView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["instruments"] = Instrument.objects.filter(is_active=True)
+        context["instruments"] = Instrument.objects.filter(user=self.request.user, is_active=True)
         context["selected_instrument"] = self.request.GET.get("instrument", "")
         return context
 
@@ -386,7 +400,7 @@ class PriceHistoryView(ListView):
 # ---------------------------------------------------------------------------
 
 
-class ExchangeRateListView(ListView):
+class ExchangeRateListView(LoginRequiredMixin, ListView):
     model = ExchangeRate
     template_name = "investments/exchange_rate_list.html"
     context_object_name = "rates"
@@ -530,12 +544,12 @@ def parse_price_file(uploaded_file):
         return [], ["Unrecognized file format. Expected Meezan/MUFAP or MCB format."]
 
 
-class PriceImportView(TemplateView):
+class PriceImportView(LoginRequiredMixin, TemplateView):
     template_name = "investments/price_import.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.setdefault("form", PriceImportForm())
+        context.setdefault("form", PriceImportForm(user=self.request.user))
         return context
 
     def post(self, request, *args, **kwargs):
@@ -544,7 +558,7 @@ class PriceImportView(TemplateView):
             return self._handle_confirm(request)
 
         # Upload & preview step
-        form = PriceImportForm(request.POST, request.FILES)
+        form = PriceImportForm(request.POST, request.FILES, user=request.user)
         if not form.is_valid():
             return self.render_to_response(self.get_context_data(form=form))
 
@@ -578,7 +592,7 @@ class PriceImportView(TemplateView):
         preview_json = request.POST.get("preview_data", "[]")
 
         try:
-            instrument = Instrument.objects.get(pk=instrument_id)
+            instrument = Instrument.objects.get(pk=instrument_id, user=request.user)
         except Instrument.DoesNotExist:
             messages.error(request, "Invalid instrument.")
             return redirect("investments:price_import")
@@ -606,7 +620,7 @@ class PriceImportView(TemplateView):
         return redirect("investments:bulk_prices")
 
 
-class PortfolioPerformanceView(TemplateView):
+class PortfolioPerformanceView(LoginRequiredMixin, TemplateView):
     template_name = "investments/portfolio_performance.html"
 
     RANGE_DAYS = {
@@ -618,6 +632,7 @@ class PortfolioPerformanceView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
+        user = self.request.user
 
         # Parse range parameter
         range_param = self.request.GET.get("range", "6m")
@@ -638,7 +653,7 @@ class PortfolioPerformanceView(TemplateView):
             end_date = today
             active_range = "ytd"
         elif range_param == "all":
-            inception = get_inception_date()
+            inception = get_inception_date(user=user)
             start_date = inception if inception else today - timedelta(days=180)
             end_date = today
             active_range = "all"
@@ -653,7 +668,7 @@ class PortfolioPerformanceView(TemplateView):
 
         # Compute series
         dates, portfolio_values, net_invested_values = compute_portfolio_series(
-            start_date, end_date
+            start_date, end_date, user=user
         )
 
         # Summary stats

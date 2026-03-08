@@ -12,9 +12,12 @@ from decimal import Decimal
 from .models import ExchangeRate, InstrumentPrice, InvestmentTransaction
 
 
-def get_inception_date():
+def get_inception_date(user=None):
     """Return the date of the earliest investment transaction, or None."""
-    first = InvestmentTransaction.objects.order_by("date").values_list("date", flat=True).first()
+    qs = InvestmentTransaction.objects.all()
+    if user:
+        qs = qs.filter(user=user)
+    first = qs.order_by("date").values_list("date", flat=True).first()
     return first
 
 
@@ -33,7 +36,7 @@ def _get_last_known(sorted_pairs, target_date):
     return sorted_pairs[idx][1]
 
 
-def compute_portfolio_series(start_date, end_date):
+def compute_portfolio_series(start_date, end_date, user=None):
     """Compute portfolio value and net invested series over a date range.
 
     Returns (dates, portfolio_values, net_invested_values) where each is a
@@ -42,9 +45,11 @@ def compute_portfolio_series(start_date, end_date):
     Optimization: 3 DB queries total, all lookups done in Python via bisect.
     """
     # 1. Pre-fetch all investment transactions grouped by instrument
+    tx_qs = InvestmentTransaction.objects.select_related("instrument")
+    if user:
+        tx_qs = tx_qs.filter(user=user)
     all_txs = list(
-        InvestmentTransaction.objects.select_related("instrument")
-        .order_by("date", "created_at")
+        tx_qs.order_by("date", "created_at")
         .values_list(
             "date",
             "instrument_id",

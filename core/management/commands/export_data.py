@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
 from accounts.models import Account
@@ -36,17 +37,32 @@ class Command(BaseCommand):
             default="expense_tracker_export.json",
             help="Output file path (default: expense_tracker_export.json)",
         )
+        parser.add_argument(
+            "--user",
+            type=str,
+            help="Username to export data for (default: all users)",
+        )
 
     def handle(self, *args, **options):
+        user_filter = {}
+        if options["user"]:
+            try:
+                user = User.objects.get(username=options["user"])
+                user_filter = {"user": user}
+                self.stdout.write(f"Exporting data for user: {user.username}")
+            except User.DoesNotExist:
+                self.stderr.write(f"User not found: {options['user']}")
+                return
+
         data = {
             "meta": {
                 "app": "expense_tracker",
-                "version": "1.0",
+                "version": "2.0",
                 "exported_at": datetime.now().isoformat(),
             },
             "accounts": list(
-                Account.objects.values(
-                    "id", "name", "account_type", "balance",
+                Account.objects.filter(**user_filter).values(
+                    "id", "user_id", "name", "account_type", "balance",
                     "created_at", "updated_at",
                 )
             ),
@@ -56,15 +72,15 @@ class Command(BaseCommand):
                 )
             ),
             "transactions": list(
-                Transaction.objects.values(
-                    "id", "date", "amount", "type", "category_id",
+                Transaction.objects.filter(**user_filter).values(
+                    "id", "user_id", "date", "amount", "type", "category_id",
                     "account_id", "transfer_to_id", "description",
                     "recurring_rule_id", "created_at", "updated_at",
                 )
             ),
             "loans": list(
-                Loan.objects.values(
-                    "id", "borrower_name", "amount", "date_lent",
+                Loan.objects.filter(**user_filter).values(
+                    "id", "user_id", "borrower_name", "amount", "date_lent",
                     "expected_return", "status", "account_id", "notes",
                     "date_repaid", "repaid_to_account_id", "created_at",
                 )
@@ -76,20 +92,20 @@ class Command(BaseCommand):
                 )
             ),
             "recurring_rules": list(
-                RecurringRule.objects.values(
-                    "id", "name", "amount", "type", "category_id",
+                RecurringRule.objects.filter(**user_filter).values(
+                    "id", "user_id", "name", "amount", "type", "category_id",
                     "account_id", "frequency", "day_of_month",
                     "is_active", "created_at",
                 )
             ),
             "budgets": list(
-                Budget.objects.values(
-                    "id", "category_id", "month", "amount",
+                Budget.objects.filter(**user_filter).values(
+                    "id", "user_id", "category_id", "month", "amount",
                 )
             ),
             "instruments": list(
-                Instrument.objects.values(
-                    "id", "name", "ticker", "instrument_type", "currency",
+                Instrument.objects.filter(**user_filter).values(
+                    "id", "user_id", "name", "ticker", "instrument_type", "currency",
                     "api_id", "platform", "notes", "is_active", "created_at",
                 )
             ),
@@ -99,8 +115,8 @@ class Command(BaseCommand):
                 )
             ),
             "investment_transactions": list(
-                InvestmentTransaction.objects.values(
-                    "id", "date", "instrument_id", "transaction_type",
+                InvestmentTransaction.objects.filter(**user_filter).values(
+                    "id", "user_id", "date", "instrument_id", "transaction_type",
                     "units", "price_per_unit", "total_amount",
                     "brokerage_fee", "tax", "account_id", "notes",
                     "created_at",
@@ -113,8 +129,8 @@ class Command(BaseCommand):
                 )
             ),
             "tags": list(
-                Tag.objects.values(
-                    "id", "name", "tag_type", "color", "description",
+                Tag.objects.filter(**user_filter).values(
+                    "id", "user_id", "name", "tag_type", "color", "description",
                     "is_active", "created_at",
                 )
             ),

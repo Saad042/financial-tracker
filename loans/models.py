@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
@@ -15,6 +16,9 @@ class Loan(models.Model):
         (REPAID, "Repaid"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="loans",
+    )
     borrower_name = models.CharField(max_length=200)
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     date_lent = models.DateField(default=timezone.now)

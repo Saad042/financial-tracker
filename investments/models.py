@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -25,8 +26,11 @@ class Instrument(models.Model):
         (USD, "USD"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="instruments",
+    )
     name = models.CharField(max_length=200)
-    ticker = models.CharField(max_length=20, unique=True)
+    ticker = models.CharField(max_length=20)
     instrument_type = models.CharField(max_length=20, choices=INSTRUMENT_TYPE_CHOICES)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES)
     api_id = models.CharField(
@@ -42,6 +46,7 @@ class Instrument(models.Model):
 
     class Meta:
         ordering = ["name"]
+        unique_together = [("user", "ticker")]
 
     def __str__(self):
         return f"{self.ticker} - {self.name}"
@@ -234,6 +239,9 @@ class InvestmentTransaction(models.Model):
         (DIVIDEND, "Dividend"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="investment_transactions",
+    )
     date = models.DateField(default=timezone.now)
     instrument = models.ForeignKey(
         Instrument, on_delete=models.PROTECT, related_name="transactions"

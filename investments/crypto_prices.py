@@ -53,7 +53,8 @@ def _set_status(**kwargs):
 
 
 def start_background_fetch(
-    fetch_exchange_rate=True, ticker=None, start_date=None, end_date=None
+    fetch_exchange_rate=True, ticker=None, start_date=None, end_date=None,
+    user=None,
 ):
     """Start fetch in a daemon thread. Returns True if started, False if already running."""
     with _lock:
@@ -63,14 +64,14 @@ def start_background_fetch(
 
     t = threading.Thread(
         target=_background_worker,
-        args=(fetch_exchange_rate, ticker, start_date, end_date),
+        args=(fetch_exchange_rate, ticker, start_date, end_date, user),
         daemon=True,
     )
     t.start()
     return True
 
 
-def _background_worker(fetch_exchange_rate, ticker, start_date, end_date):
+def _background_worker(fetch_exchange_rate, ticker, start_date, end_date, user):
     try:
         fetch_crypto_prices(
             fetch_exchange_rate=fetch_exchange_rate,
@@ -78,6 +79,7 @@ def _background_worker(fetch_exchange_rate, ticker, start_date, end_date):
             ticker=ticker,
             start_date=start_date,
             end_date=end_date,
+            user=user,
         )
     except Exception as e:
         logger.exception("Background crypto fetch failed")
@@ -97,6 +99,7 @@ def fetch_crypto_prices(
     ticker=None,
     start_date=None,
     end_date=None,
+    user=None,
 ):
     """
     Fetch historical + current prices for crypto instruments with api_id set.
@@ -105,11 +108,14 @@ def fetch_crypto_prices(
         ticker: If set, only fetch for this specific instrument ticker.
         start_date: Override start date (instead of auto-detecting from latest price).
         end_date: Override end date (default: today).
+        user: If set, only fetch for instruments belonging to this user.
     """
     qs = Instrument.objects.filter(
         instrument_type=Instrument.CRYPTO,
         is_active=True,
     ).exclude(api_id="")
+    if user:
+        qs = qs.filter(user=user)
 
     if ticker:
         qs = qs.filter(ticker__iexact=ticker)

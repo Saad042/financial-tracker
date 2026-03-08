@@ -50,6 +50,7 @@ class Command(BaseCommand):
             txn_date = target_date.replace(day=rule.day_of_month)
 
             Transaction.objects.create(
+                user=rule.user,
                 date=txn_date,
                 amount=rule.amount,
                 type=rule.type,

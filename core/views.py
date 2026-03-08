@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import DecimalField, OuterRef, Subquery, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -18,14 +19,15 @@ from recurring.models import RecurringRule
 from transactions.models import Transaction
 
 
-class DashboardView(TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "core/dashboard.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         now = timezone.now()
+        user = self.request.user
 
-        accounts = Account.objects.all()
+        accounts = Account.objects.filter(user=user)
         context["accounts"] = accounts
         context["total_balance"] = (
             accounts.aggregate(total=Sum("balance"))["total"] or Decimal("0.00")
@@ -34,7 +36,7 @@ class DashboardView(TemplateView):
         # This month's income/expenses
         today = now.date()
         month_start = now.replace(day=1).date()
-        month_txns = Transaction.objects.filter(date__gte=month_start)
+        month_txns = Transaction.objects.filter(user=user, date__gte=month_start)
 
         month_income = (
             month_txns.filter(type=Transaction.INCOME)
@@ -61,7 +63,7 @@ class DashboardView(TemplateView):
         last_month_end = month_start - timedelta(days=1)
         last_month_start = last_month_end.replace(day=1)
         last_month_txns = Transaction.objects.filter(
-            date__gte=last_month_start, date__lte=last_month_end
+            user=user, date__gte=last_month_start, date__lte=last_month_end
         )
         last_income = (
             last_month_txns.filter(type=Transaction.INCOME)
@@ -88,11 +90,12 @@ class DashboardView(TemplateView):
 
         # Recent transactions
         context["recent_transactions"] = (
-            Transaction.objects.select_related("category", "account", "transfer_to")[:15]
+            Transaction.objects.filter(user=user)
+            .select_related("category", "account", "transfer_to")[:15]
         )
 
         # Active loans (outstanding + partially repaid)
-        active_loans = Loan.objects.exclude(status=Loan.REPAID)
+        active_loans = Loan.objects.filter(user=user).exclude(status=Loan.REPAID)
         context["loans_active_count"] = active_loans.count()
 
         loans_total_lent = (
@@ -129,7 +132,7 @@ class DashboardView(TemplateView):
         portfolio_value = Decimal("0.00")
         net_invested_pkr = Decimal("0.00")
         total_realized_pkr = Decimal("0.00")
-        for inst in Instrument.objects.filter(is_active=True):
+        for inst in Instrument.objects.filter(user=user, is_active=True):
             holdings = inst.current_holdings
             price = inst.latest_price or Decimal("0")
             value = holdings * price if holdings > 0 else Decimal("0")
@@ -162,7 +165,7 @@ class DashboardView(TemplateView):
         context["total_gain_loss"] = total_gain_loss
         context["total_gain_loss_pct"] = total_gain_loss_pct
         context["total_realized_pkr"] = total_realized_pkr
-        context["has_investments"] = InvestmentTransaction.objects.exists()
+        context["has_investments"] = InvestmentTransaction.objects.filter(user=user).exists()
 
         # Net Worth: cash + receivables + investments
         context["net_worth"] = (
@@ -174,6 +177,7 @@ class DashboardView(TemplateView):
         # Top expense categories this month
         context["top_categories"] = (
             Transaction.objects.filter(
+                user=user,
                 type=Transaction.EXPENSE,
                 date__gte=month_start,
                 category__isnull=False,
@@ -185,16 +189,18 @@ class DashboardView(TemplateView):
 
         # Budget alerts (warning or exceeded for current month)
         current_month = month_start
-        budgets = Budget.objects.filter(month=current_month).select_related("category")
+        budgets = Budget.objects.filter(
+            user=user, month=current_month
+        ).select_related("category")
         context["budget_alerts"] = [
             b for b in budgets if b.status in ("warning", "exceeded")
         ]
 
         # Upcoming recurring transactions (active rules not yet generated this period)
         pending_rules = []
-        for rule in RecurringRule.objects.filter(is_active=True).select_related(
-            "category", "account"
-        ):
+        for rule in RecurringRule.objects.filter(
+            user=user, is_active=True
+        ).select_related("category", "account"):
             if rule.frequency == RecurringRule.MONTHLY:
                 already = Transaction.objects.filter(
                     recurring_rule=rule,
