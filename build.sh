@@ -4,5 +4,6 @@ set -o errexit
 pip install uv
 uv sync
 
+uv run python manage.py tailwind build
 uv run python manage.py collectstatic --noinput
 uv run python manage.py migrate
